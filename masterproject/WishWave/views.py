@@ -3,13 +3,16 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile
-from .serializers import CompanySerializer, UserProfileSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer
 from django.core.mail import send_mail
-from masterproject.views import generate_numeric_otp,return_response
+from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
+import base64
+from io import BytesIO
+import pandas as pd
 
 
 #         # permission_classes = [IsAuthenticated]
@@ -124,6 +127,7 @@ class verify_otp(APIView):
         refresh = RefreshToken.for_user(user_profile.user)
         refresh['email'] = user_profile.user.email
         refresh['role_id'] = user_profile.role_id
+        refresh['company_id'] = user_profile.company_id
 
         return Response(return_response(2, 'Login successful', {
             'refresh': str(refresh),
@@ -136,4 +140,118 @@ class get_company_code(APIView):
         if not last_company:
             return Response(return_response(2, 'No company found', 1), status=status.HTTP_200_OK)
         return Response(return_response(2, 'Company found', last_company.company_id + 1), status=status.HTTP_200_OK)
+
+
+class EmployeeCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, employee_id=None):
+        try:
+            payload = Decode_JWt(request.headers.get('Authorization'))
+            employee = Employees.objects.get(pk=employee_id)
+            if payload['company_id'] != employee.company_id:
+                return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
+            spouse = Spouse.objects.filter(employee=employee_id).first() 
+            children = Child.objects.filter(employee=employee_id) 
+            employee_data = EmployeeSerializer(employee).data
+            employee_data['spouse'] = SpouseSerializer(spouse).data if spouse else None
+            employee_data['children'] = ChildSerializer(children, many=True).data
+
+            return Response(employee_data, status=status.HTTP_200_OK)
+        except Employees.DoesNotExist:
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        request.data['company_id'] = payload['company_id']
+        # request.data['company_id'] =2
+        serializer = EmployeeSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EmployeeBulkUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Expecting the Base64 data in the request body
+        base64_data = request.data.get('file')
+
+        if not base64_data:
+            return Response({"error": "No Base64 data provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Split the Base64 data to get the actual Base64 string
+        print(base64_data)
+        try:
+            header, encoded = base64_data.split(',')
+            decoded = base64.b64decode(encoded)
+        except Exception as e:
+            return Response({"error": f"Error decoding Base64 data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Read the Excel file from the decoded data
+        try:
+            data_frame = pd.read_excel(BytesIO(decoded))
+        except Exception as e:
+            return Response({"error": f"Error reading Excel data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        employees_created = []
+
+        for index, row in data_frame.iterrows():
+            spouse_data = {
+                'spouse_name': row.get('Spouse name'),
+                'spouse_dob': row.get('Spouse DOB'),
+                'spouse_email': row.get('Spouse Email'),
+                'spouse_phone': row.get('Spouse Phone Number'),
+            }
+
+            children_data = []
+            if pd.notna(row.get('Kid1 Name')):
+                children_data.append({
+                    'child_name': row.get('Kid1 Name'),
+                    'child_gender': row.get('Kid 1 Gender'),
+                    'child_dob': row.get('Kid1 DOB'),
+                })
+            if pd.notna(row.get('Kid 2 name')):
+                children_data.append({
+                    'child_name': row.get('Kid 2 name'),
+                    'child_gender': row.get('Kid 2 Gender'),
+                    'child_dob': row.get('Kid 2 DOB'),
+                })
+            if pd.notna(row.get('Kid 3 Name')):
+                children_data.append({
+                    'child_name': row.get('Kid 3 Name'),
+                    'child_gender': row.get('Kid 3 Gender'),
+                    'child_dob': row.get('Kid 3 DOB'),
+                })
+
+            employee_data = {
+                'company_id': '1',
+                'employee_name': row.get('Name'),
+                'employee_phone': row.get('Phone Number with country code'),
+                'whatsapp_phone_number': row.get('Whatsapp Phone number'),
+                'employee_doj': row.get('Date of Joining (DOJ)'),
+                'employee_dob': row.get('Date of Birth (DOB)'),
+                'employee_dept': row.get('Department'),
+                'employee_email': row.get('Email'),
+                'anniversary_date': row.get('Anniversary date'),
+                'address': row.get('addrees'),
+                'state': row.get('state'),
+                'pincode': row.get('pincode'),
+                'country': row.get('contry'),
+                'gender': 'Male' if row.get('Kid 1 Gender') == 'Male' else 'Female',  # Adjust based on your requirements
+                'marital_status': 'Married' if pd.notna(row.get('Spouse name')) else 'Single',  # Set based on spouse information
+                'spouse': spouse_data,
+                'children': children_data,
+            }
+
+            serializer = EmployeeSerializer(data=employee_data)
+            if serializer.is_valid():
+                employee = serializer.save()
+                employees_created.append(employee)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
 

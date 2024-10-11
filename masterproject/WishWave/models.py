@@ -51,3 +51,63 @@ class Company(models.Model):
     def __str__(self):
         return self.company_name
 
+
+class Employees(models.Model):
+    employee_id = models.AutoField(primary_key=True)
+    company_id = models.CharField(max_length=255, null=True, blank=True)
+    employee_name = models.CharField(max_length=100)
+    employee_dept = models.CharField(max_length=100)
+    employee_email = models.EmailField(max_length=100)
+    employee_phone = models.CharField(max_length=20)
+    whatsapp_phone_number = models.CharField(max_length=20, null=True, blank=True)  # New field
+    employee_dob = models.DateField()
+    employee_doj = models.DateField()
+    anniversary_date = models.DateField(null=True, blank=True)  # New field
+    address = models.TextField(null=True, blank=True)  # New field
+    state = models.CharField(max_length=100, null=True, blank=True)  # New field
+    pincode = models.CharField(max_length=10, null=True, blank=True)  # New field
+    country = models.CharField(max_length=100, null=True, blank=True)  # New field
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+    gender = models.CharField(max_length=6, choices=GENDER_CHOICES)
+    MARITAL_STATUS_CHOICES = [
+        ('Single', 'Single'),
+        ('Married', 'Married'),
+        ('Divorced', 'Divorced'),
+        ('Widowed', 'Widowed'),
+    ]
+    marital_status = models.CharField(max_length=8, choices=MARITAL_STATUS_CHOICES)
+    file_path = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.employee_name
+
+class Spouse(models.Model):
+    spouse_id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey('Employees', on_delete=models.CASCADE)
+    spouse_name = models.CharField(max_length=100, null=True, blank=True)
+    spouse_dob = models.DateField(null=True, blank=True)
+    spouse_email = models.EmailField(max_length=100, null=True, blank=True)
+    spouse_phone = models.CharField(max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.spouse_name if self.spouse_name else "Unnamed Spouse"
+
+class Child(models.Model):
+    child_id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey('Employees', on_delete=models.CASCADE)
+    child_name = models.CharField(max_length=100, null=True, blank=True)
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+    child_gender = models.CharField(max_length=6, choices=GENDER_CHOICES, null=True, blank=True)
+    child_dob = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return self.child_name if self.child_name else "Unnamed Child"
