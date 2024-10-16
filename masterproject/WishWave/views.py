@@ -178,6 +178,8 @@ class EmployeeBulkUploadView(APIView):
     def post(self, request):
         # Expecting the Base64 data in the request body
         base64_data = request.data.get('file')
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        request.data['company_id'] = payload['company_id']
 
         if not base64_data:
             return Response({"error": "No Base64 data provided"}, status=status.HTTP_400_BAD_REQUEST)
@@ -227,7 +229,7 @@ class EmployeeBulkUploadView(APIView):
                 })
 
             employee_data = {
-                'company_id': '1',
+                'company_id': payload['company_id'],
                 'employee_name': row.get('Name'),
                 'employee_phone': row.get('Phone Number with country code'),
                 'whatsapp_phone_number': row.get('Whatsapp Phone number'),
