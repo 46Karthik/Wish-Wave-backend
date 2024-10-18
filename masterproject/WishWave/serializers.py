@@ -85,3 +85,43 @@ class EmployeeSerializer(serializers.ModelSerializer):
             Child.objects.create(employee=employee, **child_data)
 
         return employee
+
+class VendorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vendor
+        fields = [
+            'vendor_type',
+            'name_of_vendor',
+            'contact_no',
+            'mobile_no',
+            'email',
+            'address_1',
+            'address_2',
+            'town_village',
+            'city',
+            'state',
+            'pin',
+            'gps_location_link',
+            'manager_name',
+            'manager_phone',
+            'manager_email',
+            'store_general_contact',
+            'gst_number',
+            'price',
+            'remark',
+            'headoffice_address',
+            'headoffice_phone',
+            'headoffice_email',
+            'headoffice_contact_person',
+            'headoffice_contact_designation',
+            'headoffice_contact_phone',
+            'headoffice_contact_person_email',
+            'bank_name',
+            'bank_account_no',
+            'bank_ifsc',
+            'bank_branch',
+            'bank_address',
+            'bank_account_name',
+        ]   
+
+        

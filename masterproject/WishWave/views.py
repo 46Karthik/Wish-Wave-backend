@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt
 from django.utils import timezone
@@ -256,4 +256,23 @@ class EmployeeBulkUploadView(APIView):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
+
+class VendorView(APIView):
+    # permission_classes = [IsAuthenticated]
+    serializer_class = VendorSerializer
+    def post(self, request):
+        vendor_data = request.data
+
+        serializer = VendorSerializer(data=vendor_data)
+        if serializer.is_valid():
+            vendor = serializer.save()
+            return Response({"message": f"Vendor created successfully"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        all_vendors = Vendor.objects.all()
+        serializer = VendorSerializer(all_vendors, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 

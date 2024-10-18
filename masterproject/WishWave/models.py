@@ -111,3 +111,45 @@ class Child(models.Model):
 
     def __str__(self):
         return self.child_name if self.child_name else "Unnamed Child"
+
+
+class Vendor(models.Model):
+    vendor_type = models.CharField(max_length=255)
+    name_of_vendor = models.CharField(max_length=255)
+    contact_no = models.CharField(max_length=20)
+    mobile_no = models.CharField(max_length=20)
+    email = models.EmailField(max_length=255, unique=True)
+    address_1 = models.CharField(max_length=255)
+    address_2 = models.CharField(max_length=255, blank=True, null=True)
+    town_village = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=255)
+    state = models.CharField(max_length=255)
+    pin = models.CharField(max_length=10)
+    gps_location_link = models.URLField(blank=True, null=True)
+    manager_name = models.CharField(max_length=255)
+    manager_phone = models.CharField(max_length=20)
+    manager_email = models.EmailField(max_length=255, unique=True)
+    store_general_contact = models.CharField(max_length=20, blank=True, null=True)
+    gst_number = models.CharField(max_length=15, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    remark = models.TextField(blank=True, null=True)
+    headoffice_address = models.CharField(max_length=255, null=True, blank=True)
+    headoffice_phone = models.CharField(max_length=20, null=True, blank=True)
+    headoffice_email = models.EmailField(max_length=255, null=True, blank=True)
+    headoffice_contact_person = models.CharField(max_length=255, null=True, blank=True)
+    headoffice_contact_designation = models.CharField(max_length=255, null=True, blank=True)
+    headoffice_contact_phone = models.CharField(max_length=20, null=True, blank=True)
+    headoffice_contact_person_email = models.EmailField(max_length=255, unique=True)
+    bank_name = models.CharField(max_length=255)
+    bank_account_no = models.CharField(max_length=50)
+    bank_ifsc = models.CharField(max_length=20)
+    bank_branch = models.CharField(max_length=255)
+    bank_address = models.CharField(max_length=255)
+    bank_account_name = models.CharField(max_length=255)
+
+    class Meta:
+        verbose_name = 'Vendor'
+        verbose_name_plural = 'Vendors'
+
+    def _str_(self):
+        return self.name_of_vendor

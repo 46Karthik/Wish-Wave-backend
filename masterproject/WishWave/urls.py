@@ -11,4 +11,5 @@ urlpatterns = [
     path('add_employee/', EmployeeCreateView.as_view(), name='add_employee'),
     path('employee/<int:employee_id>/', EmployeeCreateView.as_view(), name='get_employee'),
     path('employee-bulk-upload/', EmployeeBulkUploadView.as_view(), name='employee-bulk-upload'),
+    path('vendor/', VendorView.as_view(), name='vendor'),
 ]
