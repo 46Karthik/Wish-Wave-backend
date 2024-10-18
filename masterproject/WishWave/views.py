@@ -90,7 +90,7 @@ class send_mail_otp(APIView):
             return Response(return_response(1, 'User mail Id not found'), status=status.HTTP_200_OK)
 
         user_profile = UserProfile.objects.get(email_id=email)
-
+        
         user_profile.otp = new_otp   
         user_profile.otp_generated_time = timezone.now()   
         user_profile.is_verified = False   

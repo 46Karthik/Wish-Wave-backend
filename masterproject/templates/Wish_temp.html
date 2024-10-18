@@ -1,12 +1,113 @@
-<!DOCTYPE html>
-<html>
+<!-- <!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Happy Birthday!</title>
 </head>
 <body>
     <h1>Happy Birthday, {{ employee_name }}!</h1>
     <p>We just wanted to wish you a wonderful birthday in advance! 🎉</p>
-    <img src="cid:{{ image_cid }}" alt="Happy Birthday" style="width: 100%; max-width: 600px;">
+    <img src="{{image_src}}" alt="Happy Birthday" style="width: 100%; max-width: 600px;">
+    <img src="data:image/png;base64,{{image_src}}" alt="Happy Birthday" style="width: 100%; max-width: 600px;"> 
     <p>Best wishes from all of us!</p>
+</body>
+</html> -->
+
+
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .container {
+            width: 300px;
+            margin: auto;
+            text-align: center;
+        }
+        #imageContainer {
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+            margin-top: 10px;
+        }
+        #overlayText {
+            position: absolute;
+            color: red;
+            font-weight: bold;
+            transform: translate(-50%, -50%);
+        }
+        #overlayLogo {
+            position: absolute;
+            width: 50px; /* Default logo size, can be adjusted */
+            height: auto;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="imageContainer">
+            <img id="uploadedImage" src="" alt="Uploaded Image" style="width:100%; display:none;">
+            <span id="overlayText"></span>
+            <img id="overlayLogo" src="" alt="Overlay Logo">
+        </div>
+    </div>
+
+    <script>
+        const uploadedImage = document.getElementById("uploadedImage");
+        const overlayText = document.getElementById("overlayText");
+        const overlayLogo = document.getElementById("overlayLogo");
+
+        // Default values
+        const imageUrl = "https://res.cloudinary.com/dzofo8q8p/image/upload/v1729156873/img5_dvqdtg.jpg";
+        const logoUrl = "https://res.cloudinary.com/dzofo8q8p/image/upload/v1729156915/WishWave_gmqjng.png";
+        const overlayInput = "Karthik";
+        const textX = 50; // X Coordinate
+        const textY = 70; // Y Coordinate
+        const logoX = 9.722041026159655; // Logo X Coordinate
+        const logoY = 8.07601813704261; // Logo Y Coordinate
+
+        // Set the uploaded image URL
+        uploadedImage.src = imageUrl;
+        uploadedImage.style.display = "block";
+
+        // Apply text overlay
+        overlayText.textContent = overlayInput;
+        overlayText.style.left = textX + "%";
+        overlayText.style.top = textY + "%";
+
+        // Set the logo URL
+        overlayLogo.src = logoUrl;
+        overlayLogo.style.left = logoX + "%";
+        overlayLogo.style.top = logoY + "%";
+        overlayLogo.style.display = "block";
+    </script>
+</body>
+</html>  -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div style="width: 300px; margin: auto; text-align: center; position: relative;">
+        <!-- Image -->
+        <img src="https://res.cloudinary.com/dzofo8q8p/image/upload/v1729156873/img5_dvqdtg.jpg" alt="Uploaded Image" style="width: 100%; display: block;">
+        
+        <!-- Overlay Text -->
+        <div style="position: absolute; left: 50%; top: 70%; transform: translate(-50%, -50%); font-weight: bold; color: red; font-size: 16px;">
+            Karthik
+        </div>
+
+        <!-- Overlay Logo -->
+        <img src="https://res.cloudinary.com/dzofo8q8p/image/upload/v1729156915/WishWave_gmqjng.png" alt="Overlay Logo" style="position: absolute; width: 50px; left: 9.72%; top: 8.07%; transform: translate(-50%, -50%);">
+    </div>
 </body>
 </html>

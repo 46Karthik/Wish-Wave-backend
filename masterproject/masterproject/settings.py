@@ -83,9 +83,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'masterproject.wsgi.application'
 
-CRONJOBS = [
-    ('*/5 * * * *', 'WishWave.management.commands.send_mail_wish.Command.handle')
-]
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
