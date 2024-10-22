@@ -12,4 +12,7 @@ urlpatterns = [
     path('employee/<int:employee_id>/', EmployeeCreateView.as_view(), name='get_employee'),
     path('employee-bulk-upload/', EmployeeBulkUploadView.as_view(), name='employee-bulk-upload'),
     path('vendor/', VendorView.as_view(), name='vendor'),
+    path('Upload-image/', S3ImageView.as_view(), name='Upload-image'),
+    path('template-image/', TemplateImageView.as_view(), name='template-image'),
+    path('company-template-config/', CompanyTemplateConfigView.as_view(), name='company-template-config'),
 ]

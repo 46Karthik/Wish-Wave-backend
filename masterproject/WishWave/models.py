@@ -153,3 +153,33 @@ class Vendor(models.Model):
 
     def _str_(self):
         return self.name_of_vendor
+
+class TemplateImage(models.Model):
+    img_Id = models.AutoField(primary_key=True)  
+    name = models.CharField(max_length=255)    
+    path = models.CharField(max_length=1024)  
+    company_id = models.IntegerField()      
+
+    def __str__(self):
+        return self.name 
+
+class CompanyTemplateConfig(models.Model):
+    config_id = models.AutoField(primary_key=True)  # Auto-incrementing ID
+    company_id = models.IntegerField()  # Reference to the company (foreign key in actual cases)
+    template_img_id = models.IntegerField()
+    logo_name = models.CharField(max_length=255)  # Name of the logo
+    logo_path = models.CharField(max_length=255)  # Path to the logo (stored in S3 or file system)
+    logo_size = models.CharField(max_length=50)  # Size of the logo (e.g., '100x100')
+    logo_x = models.FloatField()  # X coordinate for logo placement
+    logo_y = models.FloatField()  # Y coordinate for logo placement
+    content = models.TextField()  # Content to be displayed in the template
+    content_x = models.FloatField()  # X coordinate for content placement
+    content_y = models.FloatField()  # Y coordinate for content placement
+    employname_x = models.FloatField()  # X coordinate for employee name placement
+    employname_y = models.FloatField()  # Y coordinate for employee name placement
+    text_colourcode = models.CharField(max_length=7)  # Colour code for text (e.g., '#FFFFFF')
+    text_size = models.IntegerField()  # Size of the text
+    text_font = models.CharField(max_length=100)  # Font type for the text
+
+    def __str__(self):
+        return f"Config {self.config_id} for Company {self.company_id}"

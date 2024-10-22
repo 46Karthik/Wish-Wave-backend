@@ -3,16 +3,17 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer
 from django.core.mail import send_mail
-from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt
+from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
 import base64
 from io import BytesIO
 import pandas as pd
+
 
 
 #         # permission_classes = [IsAuthenticated]
@@ -262,7 +263,6 @@ class VendorView(APIView):
     serializer_class = VendorSerializer
     def post(self, request):
         vendor_data = request.data
-
         serializer = VendorSerializer(data=vendor_data)
         if serializer.is_valid():
             vendor = serializer.save()
@@ -275,4 +275,108 @@ class VendorView(APIView):
         serializer = VendorSerializer(all_vendors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class S3ImageView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        file = request.FILES.get('file')
+        if not file:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        file_path = upload_image_to_s3(file, 'template',file.content_type)
+        if file_path == "error":
+            return Response({"error": "Invalid AWS credentials"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            file_TemplateImage_data = {
+                'name': file.name,
+                'path': file_path,
+                'company_id': payload['company_id'],
+            }
+            serializer = TemplateImageSerializer(data=file_TemplateImage_data)
+            if serializer.is_valid():
+                template_image = serializer.save()
+                template_image.save()
+                file_url = f"https://wishwave.s3.amazonaws.com/{file_path}"
+                return Response({"message": "File uploaded successfully", "file_url": file_url}, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class TemplateImageView(APIView):
+    # permission_classes = [IsAuthenticated]
+    def get(self, request):
+        all_template_image = TemplateImage.objects.all()
+        serializer = TemplateImageSerializer(all_template_image, many=True)
+        return Response(return_response(2, 'Template image found', serializer.data), status=status.HTTP_200_OK)
+
+class CompanyTemplateConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        all_template_image = CompanyTemplateConfig.objects.filter(company_id=payload['company_id'])
+        serializer = CompanyTemplateConfigSerializer(all_template_image, many=True)
+        return Response(return_response(2, 'Template image found', serializer.data), status=status.HTTP_200_OK)
+        
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        request.data['company_id'] = payload['company_id']
+        print(request.FILES.get('new_logo_file'))
+        if request.data['new_logo_upload']  == True:
+            file =request.data['new_logo_base64']
+            if not file:
+                return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+            file_path = upload_base64_image_to_s3(file, 'company', request.data['logo_name'], 'image/png')
+            if file_path == "error":
+                return Response(return_response(1, 'Invalid AWS credentials'), status=status.HTTP_400_BAD_REQUEST)
+            request.data['logo_path'] = file_path
+            serializer = CompanyTemplateConfigSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(return_response(2, 'Template Config created successfully'), status=status.HTTP_201_CREATED)
+            else:
+                return Response(return_response(1, 'Template Config not created'), status=status.HTTP_400_BAD_REQUEST)
+        else:
+            serializer = CompanyTemplateConfigSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(return_response(2, 'Template Config created successfully'), status=status.HTTP_201_CREATED)
+            else:
+                return Response(return_response(1, 'Template Config not created'), status=status.HTTP_400_BAD_REQUEST)
+
+           
+
+        
+        
+    def put(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        company_id = payload.get('company_id')
+        
+        try:
+            company_template = CompanyTemplateConfig.objects.get(company_id=company_id)
+        except CompanyTemplateConfig.DoesNotExist:
+            return Response({"error": "Company template not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Use partial=True to allow updating the template without creating a new one
+        serializer = CompanyTemplateConfigSerializer(company_template, data=request.data, partial=True)
+
+        if 'new_logo_upload' in request.data and request.data['new_logo_upload'] == True:
+            file = request.data.get('new_logo_base64')
+            if not file:
+                return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+            delete_image = delete_image_from_s3(request.data.get('logo_path'))
+            if not delete_image:
+                return Response({"error": "Logo file not found"}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                file_path = upload_base64_image_to_s3(file, 'company', request.data.get('logo_name'), 'image/png')
+                if file_path == "error":
+                    return Response(return_response(1, 'Invalid AWS credentials'), status=status.HTTP_400_BAD_REQUEST)
+
+                request.data['logo_path'] = file_path
+
+        # Now update the company template with new or existing data
+        serializer = CompanyTemplateConfigSerializer(company_template, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, 'Template Config updated successfully'), status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -124,4 +124,29 @@ class VendorSerializer(serializers.ModelSerializer):
             'bank_account_name',
         ]   
 
-        
+class TemplateImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TemplateImage
+        fields = ['img_Id','name', 'path', 'company_id']
+
+class CompanyTemplateConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyTemplateConfig
+        fields = [
+            'config_id', 
+            'company_id', 
+            'template_img_id', 
+            'logo_name', 
+            'logo_path', 
+            'logo_size', 
+            'logo_x', 
+            'logo_y', 
+            'content', 
+            'content_x', 
+            'content_y', 
+            'employname_x', 
+            'employname_y', 
+            'text_colourcode', 
+            'text_size', 
+            'text_font'
+        ]
