@@ -148,6 +148,10 @@ class EmployeeCreateView(APIView):
     def get(self, request, employee_id=None):
         try:
             payload = Decode_JWt(request.headers.get('Authorization'))
+            if employee_id is None:
+                employee_list = Employees.objects.filter(company_id=payload['company_id'])
+                serializer = EmployeeSerializer(employee_list, many=True)
+                return Response(return_response(2,"Employee found",serializer.data), status=status.HTTP_200_OK)
             employee = Employees.objects.get(pk=employee_id)
             if payload['company_id'] != employee.company_id:
                 return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
@@ -157,7 +161,7 @@ class EmployeeCreateView(APIView):
             employee_data['spouse'] = SpouseSerializer(spouse).data if spouse else None
             employee_data['children'] = ChildSerializer(children, many=True).data
 
-            return Response(employee_data, status=status.HTTP_200_OK)
+            return Response(return_response(2,"Emplyess Data Founded",employee_data), status=status.HTTP_200_OK)
         except Employees.DoesNotExist:
             return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -168,9 +172,11 @@ class EmployeeCreateView(APIView):
         # request.data['company_id'] =2
         serializer = EmployeeSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if Employees.objects.filter(employee_email=request.data.get('employee_email')).exists():
+                return Response(return_response(1, 'This  employee email is already registered.'), status=status.HTTP_200_OK)
+            # serializer.save()
+            return Response(return_response(2,"Employee Created Successfully",serializer.data), status=status.HTTP_201_CREATED)
+        return Response(return_response(1,serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
 
 class EmployeeBulkUploadView(APIView):
@@ -263,17 +269,58 @@ class VendorView(APIView):
     serializer_class = VendorSerializer
     def post(self, request):
         vendor_data = request.data
+        if Vendor.objects.filter(name_of_vendor=request.data.get('name_of_vendor')).exists():
+            return Response(return_response(1, 'This vendor name is already registered.'), status=status.HTTP_200_OK)
+        if Vendor.objects.filter(email=request.data.get('email')).exists():
+            return Response(return_response(1, 'This vendor email is already registered.'), status=status.HTTP_200_OK)
+        if Vendor.objects.filter(gst_number=request.data.get('gst_number')).exists():
+            return Response(return_response(1, 'This gst number is already registered.'), status=status.HTTP_200_OK)
+        if Vendor.objects.filter(headoffice_contact_phone=request.data.get('headoffice_contact_phone')).exists():
+            return Response(return_response(1, 'This headoffice contact phone is already registered.'), status=status.HTTP_200_OK)
+        if Vendor.objects.filter(headoffice_contact_person_email=request.data.get('headoffice_contact_person_email')).exists():
+            return Response(return_response(1, 'This headoffice contact person email is already registered.'), status=status.HTTP_200_OK)
+        if Vendor.objects.filter(bank_account_no=request.data.get('bank_account_no')).exists():
+            return Response(return_response(1, 'This  bank account number is already registered.'), status=status.HTTP_200_OK)
         serializer = VendorSerializer(data=vendor_data)
         if serializer.is_valid():
             vendor = serializer.save()
-            return Response({"message": f"Vendor created successfully"}, status=status.HTTP_201_CREATED)
+            return Response(return_response(2,"Vendor created successfully"), status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(return_response(1, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
-    def get(self, request):
-        all_vendors = Vendor.objects.all()
-        serializer = VendorSerializer(all_vendors, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get(self, request, id=None):
+        if id is not None:
+            all_vendors = Vendor.objects.get(id=id)
+            serializer = VendorSerializer(all_vendors)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            all_vendors = Vendor.objects.all()
+            serializer = VendorSerializer(all_vendors, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        # Edit Vendor (PUT)
+    def put(self, request, id):
+        try:
+            vendor = Vendor.objects.get(id=id)
+        except Vendor.DoesNotExist:
+            return Response(return_response(1, "Vendor not found"), status=status.HTTP_404_NOT_FOUND)
+
+        # Update the vendor details
+        serializer = VendorSerializer(vendor, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, "Vendor updated successfully"), status=status.HTTP_200_OK)
+        else:
+            return Response(return_response(1, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+    # Delete Vendor (DELETE)
+    def delete(self, request, id):
+        try:
+            vendor = Vendor.objects.get(id=id)
+        except Vendor.DoesNotExist:
+            return Response(return_response(1, "Vendor not found"), status=status.HTTP_404_NOT_FOUND)
+
+        vendor.delete()
+        return Response(return_response(2, "Vendor deleted successfully"), status=status.HTTP_200_OK)
 
 class S3ImageView(APIView):
     permission_classes = [IsAuthenticated]
