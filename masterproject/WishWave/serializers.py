@@ -90,6 +90,7 @@ class VendorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vendor
         fields = [
+            'id',
             'vendor_type',
             'name_of_vendor',
             'contact_no',

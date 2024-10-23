@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django-specific files
+*.log
+*.pot
+*.pyc
+*.pyo
+*.sqlite3
+db.sqlite3
+*.pkl
+*.pid
+
+# If using Postgres, MySQL, or other databases
+*.db
+
+# Ignore Django migrations
+*/migrations/*
+
+# Ignore media and static files
+/staticfiles/
+/media/
+
+# Ignore environment files
+.env
+*.env
+.env.*
+
+# If using Docker
+docker-compose.*
+Dockerfile
+*.dockerignore
+
+# Ignore virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# Ignore Jupyter Notebook check
