@@ -167,11 +167,11 @@ class CompanyTemplateConfig(models.Model):
     config_id = models.AutoField(primary_key=True)  # Auto-incrementing ID
     company_id = models.IntegerField()  # Reference to the company (foreign key in actual cases)
     template_img_id = models.IntegerField()
-    logo_name = models.CharField(max_length=255)  # Name of the logo
-    logo_path = models.CharField(max_length=255)  # Path to the logo (stored in S3 or file system)
-    logo_size = models.CharField(max_length=50)  # Size of the logo (e.g., '100x100')
-    logo_x = models.FloatField()  # X coordinate for logo placement
-    logo_y = models.FloatField()  # Y coordinate for logo placement
+    logo_name = models.CharField(max_length=255,blank=True,null=True)  # Name of the logo
+    logo_path = models.CharField(max_length=255,blank=True,null=True)  # Path to the logo (stored in S3 or file system)
+    logo_size = models.CharField(max_length=50,blank=True,null=True)  # Size of the logo (e.g., '100x100')
+    logo_x = models.FloatField(blank=True,null=True)  # X coordinate for logo placement
+    logo_y = models.FloatField(blank=True,null=True)  # Y coordinate for logo placement
     content = models.TextField()  # Content to be displayed in the template
     content_x = models.FloatField()  # X coordinate for content placement
     content_y = models.FloatField()  # Y coordinate for content placement
@@ -183,3 +183,19 @@ class CompanyTemplateConfig(models.Model):
 
     def __str__(self):
         return f"Config {self.config_id} for Company {self.company_id}"
+
+
+class OpsTable(models.Model):
+    ops_id = models.AutoField(primary_key=True) 
+    company_id = models.IntegerField()  
+    employee_id = models.IntegerField() 
+    employee_name = models.CharField(max_length=255) 
+    img_path = models.CharField(max_length=500,blank=True,null=True)
+    image_generate = models.BooleanField(default=False)  
+    mail_send = models.BooleanField(default=False)  
+    whats_app_send = models.BooleanField(default=False) 
+    gift_sent = models.BooleanField(default=False)  
+    cake_send = models.BooleanField(default=False)  
+
+    def __str__(self):
+        return f"{self.employee_name} ({self.ops_id})"

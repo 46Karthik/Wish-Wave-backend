@@ -17,4 +17,5 @@ urlpatterns = [
     path('Upload-image/', S3ImageView.as_view(), name='Upload-image'),
     path('template-image/', TemplateImageView.as_view(), name='template-image'),
     path('company-template-config/', CompanyTemplateConfigView.as_view(), name='company-template-config'),
+    path('ops-table/', OpsTableView.as_view(), name='ops-table'),
 ]

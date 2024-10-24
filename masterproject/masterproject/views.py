@@ -6,6 +6,7 @@ from django.conf import settings
 import boto3
 import base64
 import io
+from django.core.management.base import BaseCommand
 from botocore.exceptions import NoCredentialsError, ClientError
 def Decode_JWt(auth_header):
     token = auth_header.split(" ")[1]
@@ -16,15 +17,33 @@ def generate_numeric_otp(length=6):
     otp = ''.join([str(random.randint(0, 9)) for _ in range(length)])
     return otp
 
+# def return_sql_results(sql):
+#     cursor = connection.cursor()
+#     cursor.execute(sql)
+#     rows = cursor.fetchall()
+#     result = []
+#     if rows:
+#         result = [json.loads(row[0]) for row in rows]
+#     return result
 def return_sql_results(sql):
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
     result = []
+    
     if rows:
-        result = [json.loads(row[0]) for row in rows]
-    return result
+        for row in rows:
+            try:
+                # Attempt to load the JSON string
+                json_data = json.loads(row[0])
+                result.append(json_data)
+            except (TypeError, json.JSONDecodeError) as e:
+                # Handle cases where row[0] is not a valid JSON string
+                print(f"Error parsing JSON for row: {row}, Error: {e}")
+                # You might want to append a placeholder or continue
+                result.append({'error': 'Invalid JSON', 'row': row})
 
+    return result
 def return_response(statuscode, message, data=None):
     if data is not None:
         return {
@@ -144,3 +163,33 @@ def delete_image_from_s3(file_key):
     except Exception as e:
         return False
 
+
+def upload_image_to_s3_Scheduler(file, path, content_type, file_name):
+    # Initialize the boto3 S3 client
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id="AKIA2FXAD2D3VJBIBS6D",
+        aws_secret_access_key="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",
+        region_name="ap-south-1"
+    )
+    try:
+        # Upload the file to the specified folder in the S3 bucket
+        s3_client.upload_fileobj(
+            file,
+            "wishwave", 
+            f"{path}/{file_name}",  # Use the provided file_name
+            ExtraArgs={
+                "ContentType": content_type  
+            }
+        )
+
+        # Construct the file URL
+        file_path = f"{path}/{file_name}"
+
+        return file_path
+
+    except NoCredentialsError:
+        return "error"
+
+    except Exception as e:
+        return f"Error: {str(e)}"
