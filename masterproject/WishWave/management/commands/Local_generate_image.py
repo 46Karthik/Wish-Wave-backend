@@ -2,10 +2,6 @@ from django.core.management.base import BaseCommand
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import requests
-from WishWave.models import Company, Employees, Spouse, Child, TemplateImage, CompanyTemplateConfig
-from django.utils import timezone
-from datetime import timedelta
-
 
 class Command(BaseCommand):
     help = 'Generates and saves an image with text and logo overlay'
@@ -71,8 +67,7 @@ class Command(BaseCommand):
         print(f"Image saved to {output_path}")
 
     def handle(self, *args, **options):
-        # self.generate_image()
-        self.tomorrowBirthday(self)
+        self.generate_image()
 
     def generate_image(self):
         # Default values for image and overlay
@@ -112,16 +107,3 @@ class Command(BaseCommand):
             text1_size, text2_size, text1_color, text2_color, 
             output_path, logo_size
         )
-
-    def tomorrowBirthday(self):
-        # Get today's date and the date for tomorrow
-
-
-        # Get all employees
-        data = Employees.objects.all()
-        for employee in data:
-            print(employee)
-            # # Check if the employee's birthday is tomorrow
-            # if employee.employee_dob.day == tomorrow.day and employee.employee_dob.month == tomorrow.month:
-            #     print(f"Employee with birthday tomorrow: {employee.employee_name}, DOB: {employee.employee_dob}")
-            

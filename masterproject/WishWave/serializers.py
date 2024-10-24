@@ -151,3 +151,19 @@ class CompanyTemplateConfigSerializer(serializers.ModelSerializer):
             'text_size', 
             'text_font'
         ]
+
+class OpsTableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OpsTable
+        fields = [
+            'ops_id', 
+            'company_id', 
+            'employee_id', 
+            'employee_name', 
+            'img_path', 
+            'image_generate', 
+            'mail_send', 
+            'whats_app_send', 
+            'gift_sent', 
+            'cake_send'
+        ] 

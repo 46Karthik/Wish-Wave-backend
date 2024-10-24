@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsTable
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsTableSerializer
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
@@ -49,7 +49,7 @@ class RegisterCompany(APIView):
         if serializer.is_valid():
             serializer.save()
             companyname = request.data.get('company_name')
-            company_list = Company.objects.all().get(company_name=companyname)
+            company_list = Company.objects.get(company_name=companyname)
             serializer = CompanySerializer(company_list, many=False)
             resister_company_id = serializer.data.get('company_id')
             if resister_company_id:
@@ -144,7 +144,7 @@ class get_company_code(APIView):
 
 
 class EmployeeCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request, employee_id=None):
         try:
             payload = Decode_JWt(request.headers.get('Authorization'))
@@ -164,6 +164,8 @@ class EmployeeCreateView(APIView):
             return Response(return_response(2,"Emplyess Data Founded",employee_data), status=status.HTTP_200_OK)
         except Employees.DoesNotExist:
             return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+
+  
 
 
     def post(self, request):
@@ -379,14 +381,14 @@ class CompanyTemplateConfigView(APIView):
                 serializer.save()
                 return Response(return_response(2, 'Template Config created successfully'), status=status.HTTP_201_CREATED)
             else:
-                return Response(return_response(1, 'Template Config not created'), status=status.HTTP_400_BAD_REQUEST)
+                return Response(return_response(1, 'Template Config not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
         else:
             serializer = CompanyTemplateConfigSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response(return_response(2, 'Template Config created successfully'), status=status.HTTP_201_CREATED)
             else:
-                return Response(return_response(1, 'Template Config not created'), status=status.HTTP_400_BAD_REQUEST)
+                return Response(return_response(1, 'Template Config not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
            
 
@@ -427,3 +429,13 @@ class CompanyTemplateConfigView(APIView):
             return Response(return_response(2, 'Template Config updated successfully'), status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class OpsTableView(APIView):
+    # permission_classes = [IsAuthenticated]
+    def get(self, request):
+        # payload = Decode_JWt(request.headers.get('Authorization'))
+        all_ops_table = OpsTable.objects.filter(company_id=1)
+        serializer = OpsTableSerializer(all_ops_table, many=True)
+        return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+
+            
