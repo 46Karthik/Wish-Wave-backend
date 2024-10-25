@@ -38,6 +38,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 
+WSGI_APPLICATION = 'masterproject.wsgi.application'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
