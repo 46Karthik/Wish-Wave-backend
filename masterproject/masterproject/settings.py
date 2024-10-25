@@ -30,15 +30,14 @@ SECRET_KEY = 'django-insecure-*idnav)m645u_!1$cg0_+ey=jmmr9kqmv0sazab4w4^qu=*w-a
 
 # ALLOWED_HOSTS = []
 # development
-DEBUG = False
-ALLOWED_HOSTS = ['*','.vercel.app']
+DEBUG = True
+ALLOWED_HOSTS = ['*']
 
 
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 
-WSGI_APPLICATION = 'masterproject.wsgi.application'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
