@@ -412,6 +412,7 @@ class CompanyTemplateConfigView(APIView):
                 return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
             delete_image = delete_image_from_s3(request.data.get('logo_path'))
+            print(delete_image)
             if not delete_image:
                 return Response({"error": "Logo file not found"}, status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -431,10 +432,10 @@ class CompanyTemplateConfigView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class OpsTableView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
-        # payload = Decode_JWt(request.headers.get('Authorization'))
-        all_ops_table = OpsTable.objects.filter(company_id=1)
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        all_ops_table = OpsTable.objects.filter(company_id=payload.get('company_id'))
         serializer = OpsTableSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
 
