@@ -63,7 +63,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employees
         fields = [
-            'employee_name', 'company_id', 'employee_dept', 'employee_email', 'employee_phone',
+            'employee_id','employee_name', 'company_id', 'employee_dept', 'employee_email', 'employee_phone',
             'whatsapp_phone_number', 'employee_dob', 'employee_doj', 'anniversary_date', 
             'address', 'state', 'pincode', 'country', 'gender', 'marital_status', 'file_path',
             'spouse', 'children'
@@ -167,3 +167,26 @@ class OpsTableSerializer(serializers.ModelSerializer):
             'gift_sent', 
             'cake_send'
         ] 
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscription
+        fields = [
+            'company_id', 
+            'company_name', 
+            'subscription_type', 
+            'cost_per_act_type', 
+            'currency', 
+            'employee_included', 
+            'emp_cost', 
+            'spouse_included', 
+            'spouse_cost', 
+            'kid1_included', 
+            'kid1_cost', 
+            'kid2_included', 
+            'kid2_cost', 
+            'kid3_included', 
+            'kid3_cost', 
+            'total_pax', 
+            'total_cost'
+        ]

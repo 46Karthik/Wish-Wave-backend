@@ -199,3 +199,29 @@ class OpsTable(models.Model):
 
     def __str__(self):
         return f"{self.employee_name} ({self.ops_id})"
+
+class Subscription(models.Model):
+    subscription_id = models.AutoField(primary_key=True)
+    company_id = models.CharField(max_length=20)
+    company_name = models.CharField(max_length=100)
+    subscription_type = models.CharField(max_length=50)
+    cost_per_act_type = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=10)
+    
+    # Boolean fields to indicate if the subscription includes each person type
+    employee_included = models.BooleanField(default=False)
+    emp_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    spouse_included = models.BooleanField(default=False)
+    spouse_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    kid1_included = models.BooleanField(default=False)
+    kid1_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    kid2_included = models.BooleanField(default=False)
+    kid2_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    kid3_included = models.BooleanField(default=False)
+    kid3_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    total_pax = models.IntegerField(default=1)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.company_name} - {self.subscription_type}"

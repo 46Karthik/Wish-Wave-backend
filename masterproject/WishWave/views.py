@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsTable
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsTableSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsTable,Subscription
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsTableSerializer,SubscriptionSerializer
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
@@ -145,18 +145,18 @@ class get_company_code(APIView):
 
 class EmployeeCreateView(APIView):
     # permission_classes = [IsAuthenticated]
-    def get(self, request, employee_id=None):
+    def get(self, request, id=None):
         try:
             payload = Decode_JWt(request.headers.get('Authorization'))
-            if employee_id is None:
+            if id is None:
                 employee_list = Employees.objects.filter(company_id=payload['company_id'])
                 serializer = EmployeeSerializer(employee_list, many=True)
                 return Response(return_response(2,"Employee found",serializer.data), status=status.HTTP_200_OK)
-            employee = Employees.objects.get(pk=employee_id)
+            employee = Employees.objects.get(pk=id)
             if payload['company_id'] != employee.company_id:
                 return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
-            spouse = Spouse.objects.filter(employee=employee_id).first() 
-            children = Child.objects.filter(employee=employee_id) 
+            spouse = Spouse.objects.filter(employee=id).first() 
+            children = Child.objects.filter(employee=id) 
             employee_data = EmployeeSerializer(employee).data
             employee_data['spouse'] = SpouseSerializer(spouse).data if spouse else None
             employee_data['children'] = ChildSerializer(children, many=True).data
@@ -180,6 +180,22 @@ class EmployeeCreateView(APIView):
             return Response(return_response(2,"Employee Created Successfully",serializer.data), status=status.HTTP_201_CREATED)
         return Response(return_response(1,serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
+    def put(self, request,id):
+        # Expecting the Base64 data in the request body
+        if not id:
+            return Response(return_response(1, 'Employee id is required'), status=status.HTTP_200_OK)
+        try:
+            # ipdb.set_trace()
+            payload = Decode_JWt(request.headers.get('Authorization'))
+            request.data['company_id'] = payload['company_id']
+            request.data['employee_id'] = id
+            serializer = EmployeeSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(return_response(2,"Employee Updated Successfully",serializer.data), status=status.HTTP_201_CREATED)
+            return Response(return_response(1,serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+        except Employees.DoesNotExist:
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class EmployeeBulkUploadView(APIView):
     permission_classes = [IsAuthenticated]
@@ -267,7 +283,7 @@ class EmployeeBulkUploadView(APIView):
         return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
 
 class VendorView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     serializer_class = VendorSerializer
     def post(self, request):
         vendor_data = request.data
@@ -438,5 +454,37 @@ class OpsTableView(APIView):
         all_ops_table = OpsTable.objects.filter(company_id=payload.get('company_id'))
         serializer = OpsTableSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+
+class SubscriptionTableView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        all_subscription_table = Subscription.objects.filter(company_id=payload.get('company_id'))
+        serializer = SubscriptionSerializer(all_subscription_table, many=True)
+        return Response(return_response(2, 'Subscription Table found', serializer.data), status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        request.data['company_id'] = payload.get('company_id')
+        serializer = SubscriptionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, 'Subscription Table created successfully'), status=status.HTTP_201_CREATED)
+        else:
+            return Response(return_response(1, 'Subscription Table not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        subscription_id = payload.get('subscription_id')
+        try:
+            subscription_table = Subscription.objects.get(subscription_id=subscription_id)
+        except Subscription.DoesNotExist:
+            return Response({"error": "Subscription Table not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = SubscriptionSerializer(subscription_table, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, 'Subscription Table updated successfully'), status=status.HTTP_200_OK)
+        else:
+            return Response(return_response(1, 'Subscription Table not updated',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
             
