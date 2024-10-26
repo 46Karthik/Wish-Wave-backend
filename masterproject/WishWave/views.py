@@ -176,7 +176,7 @@ class EmployeeCreateView(APIView):
         if serializer.is_valid():
             if Employees.objects.filter(employee_email=request.data.get('employee_email')).exists():
                 return Response(return_response(1, 'This  employee email is already registered.'), status=status.HTTP_200_OK)
-            # serializer.save()
+            serializer.save()
             return Response(return_response(2,"Employee Created Successfully",serializer.data), status=status.HTTP_201_CREATED)
         return Response(return_response(1,serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
@@ -465,13 +465,14 @@ class SubscriptionTableView(APIView):
     
     def post(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-        request.data['company_id'] = payload.get('company_id')
-        serializer = SubscriptionSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(return_response(2, 'Subscription Table created successfully'), status=status.HTTP_201_CREATED)
-        else:
-            return Response(return_response(1, 'Subscription Table not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+        print(request.data)
+        # request.data['company_id'] = payload.get('company_id')
+        # serializer = SubscriptionSerializer(data=request.data)
+        # if serializer.is_valid():
+        #     serializer.save()
+        #     return Response(return_response(2, 'Subscription Table created successfully'), status=status.HTTP_201_CREATED)
+        # else:
+        #     return Response(return_response(1, 'Subscription Table not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
