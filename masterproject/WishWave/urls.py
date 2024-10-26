@@ -10,7 +10,7 @@ urlpatterns = [
     path('get-Company-code/', get_company_code.as_view(), name='get-Company-code'),
     path('add_employee/', EmployeeCreateView.as_view(), name='add_employee'),
     path('employee/',EmployeeCreateView.as_view(), name='get_employee'),
-    path('employee/<int:employee_id>/', EmployeeCreateView.as_view(), name='get_employee'),
+    path('employee/<int:id>/', EmployeeCreateView.as_view(), name='get_employee'),
     path('employee-bulk-upload/', EmployeeBulkUploadView.as_view(), name='employee-bulk-upload'),
     path('vendor/', VendorView.as_view(), name='vendor'),
     path('vendor/<int:id>/', VendorView.as_view(), name='vendor'),
@@ -18,4 +18,5 @@ urlpatterns = [
     path('template-image/', TemplateImageView.as_view(), name='template-image'),
     path('company-template-config/', CompanyTemplateConfigView.as_view(), name='company-template-config'),
     path('ops-table/', OpsTableView.as_view(), name='ops-table'),
+    path('Subscription/', SubscriptionTableView.as_view(), name='Subscription-table'),
 ]
