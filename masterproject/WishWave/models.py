@@ -180,6 +180,7 @@ class CompanyTemplateConfig(models.Model):
     text_colourcode = models.CharField(max_length=7)  # Colour code for text (e.g., '#FFFFFF')
     text_size = models.IntegerField()  # Size of the text
     text_font = models.CharField(max_length=100)  # Font type for the text
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Config {self.config_id} for Company {self.company_id}"
