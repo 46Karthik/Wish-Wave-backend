@@ -149,7 +149,8 @@ class CompanyTemplateConfigSerializer(serializers.ModelSerializer):
             'employname_y', 
             'text_colourcode', 
             'text_size', 
-            'text_font'
+            'text_font',
+            'active',
         ]
 
 class OpsTableSerializer(serializers.ModelSerializer):

@@ -346,10 +346,10 @@ class S3ImageView(APIView):
         payload = Decode_JWt(request.headers.get('Authorization'))
         file = request.FILES.get('file')
         if not file:
-            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(return_response(1, 'No file provided'), status=status.HTTP_400_BAD_REQUEST)
         file_path = upload_image_to_s3(file, 'template',file.content_type)
         if file_path == "error":
-            return Response({"error": "Invalid AWS credentials"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(return_response(1, 'Invalid AWS credentials'), status=status.HTTP_400_BAD_REQUEST)
         else:
             file_TemplateImage_data = {
                 'name': file.name,
@@ -361,7 +361,7 @@ class S3ImageView(APIView):
                 template_image = serializer.save()
                 template_image.save()
                 file_url = f"https://wishwave.s3.amazonaws.com/{file_path}"
-                return Response({"message": "File uploaded successfully", "file_url": file_url}, status=status.HTTP_200_OK)
+                return Response(return_response(2, 'Template image uploaded successfully', file_url), status=status.HTTP_200_OK)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -383,7 +383,6 @@ class CompanyTemplateConfigView(APIView):
     def post(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
         request.data['company_id'] = payload['company_id']
-        print(request.FILES.get('new_logo_file'))
         if request.data['new_logo_upload']  == True:
             file =request.data['new_logo_base64']
             if not file:
@@ -406,29 +405,26 @@ class CompanyTemplateConfigView(APIView):
             else:
                 return Response(return_response(1, 'Template Config not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
-           
-
-        
-        
     def put(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
         company_id = payload.get('company_id')
-        
+        request.data['company_id'] = company_id
+
         try:
-            company_template = CompanyTemplateConfig.objects.get(company_id=company_id)
+            # Get all active configurations for the company
+            company_templates = CompanyTemplateConfig.objects.filter(company_id=company_id, active=True)
+            if not company_templates.exists():
+                return Response({"error": "Company template not found"}, status=status.HTTP_404_NOT_FOUND)
         except CompanyTemplateConfig.DoesNotExist:
             return Response({"error": "Company template not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-        # Use partial=True to allow updating the template without creating a new one
-        serializer = CompanyTemplateConfigSerializer(company_template, data=request.data, partial=True)
 
-        if 'new_logo_upload' in request.data and request.data['new_logo_upload'] == True:
+        # Upload logo if needed
+        if 'new_logo_upload' in request.data and request.data['new_logo_upload'] is True:
             file = request.data.get('new_logo_base64')
             if not file:
                 return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
             delete_image = delete_image_from_s3(request.data.get('logo_path'))
-            print(delete_image)
             if not delete_image:
                 return Response({"error": "Logo file not found"}, status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -438,14 +434,92 @@ class CompanyTemplateConfigView(APIView):
 
                 request.data['logo_path'] = file_path
 
-        # Now update the company template with new or existing data
-        serializer = CompanyTemplateConfigSerializer(company_template, data=request.data, partial=True)
-        
-        if serializer.is_valid():
-            serializer.save()
-            return Response(return_response(2, 'Template Config updated successfully'), status=status.HTTP_200_OK)
+        # Check if the new request data matches any active template configuration
+        existing_template = None
+        company_templates = CompanyTemplateConfig.objects.filter(company_id=company_id)
+        for template in company_templates:
+            if (request.data['template_img_id'] == template.template_img_id and
+                request.data['content'] == template.content):
+                existing_template = template
+                break
+        for template in company_templates:
+                template.active = False
+                template.save()
+        request.data['active'] = True
+        # If a matching template is found, update it
+        if existing_template:
+            serializer = CompanyTemplateConfigSerializer(existing_template, data=request.data, partial=True)
+            if serializer.is_valid():
+
+                serializer.save()
+                return Response(return_response(2, 'Template Config updated successfully'), status=status.HTTP_200_OK)
+            else:
+                return Response(return_response(1, 'Template Config not updated', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+        # If no matching template is found, create a new one and deactivate old templates
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer = CompanyTemplateConfigSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(return_response(2, 'Template Config created successfully'), status=status.HTTP_201_CREATED)
+            else:
+                return Response(return_response(1, 'Template Config not created', serializer.errors), status=status.HTTP_400_BAD_REQUEST)      
+
+        
+        
+    # def put(self, request):
+    #     payload = Decode_JWt(request.headers.get('Authorization'))
+    #     company_id = payload.get('company_id')
+    #     request.data['company_id'] = company_id
+    #     try:
+    #         company_template = CompanyTemplateConfig.objects.get(company_id=company_id,active = True)
+    #     except CompanyTemplateConfig.DoesNotExist:
+    #         return Response({"error": "Company template not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    #     # UPLOAD LOGO
+       
+    #     if 'new_logo_upload' in request.data and request.data['new_logo_upload'] == True:
+    #         file = request.data.get('new_logo_base64')
+    #         if not file:
+    #             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+    #         delete_image = delete_image_from_s3(request.data.get('logo_path'))
+    #         if not delete_image:
+    #             return Response({"error": "Logo file not found"}, status=status.HTTP_400_BAD_REQUEST)
+    #         else:
+    #             file_path = upload_base64_image_to_s3(file, 'company', request.data.get('logo_name'), 'image/png')
+    #             if file_path == "error":
+    #                 return Response(return_response(1, 'Invalid AWS credentials'), status=status.HTTP_400_BAD_REQUEST)
+
+    #             request.data['logo_path'] = file_path
+    #     # VALIDATE TEMPLATE CONFIG FOR NEW OR OLD 
+    #     company_template = CompanyTemplateConfig.objects.get(company_id=company_id)
+
+    #     if request.data['template_img_id'] == company_template.template_img_id and request.data['content'] == company_template.content:
+    #        # UPDATE TEMPLATE CONFIG
+    #         serializer = CompanyTemplateConfigSerializer(company_template, data=request.data, partial=True) 
+    #         if serializer.is_valid():
+    #             print("updated")
+    #             # serializer.save()
+    #             return Response(return_response(2, 'Template Config updated successfully'), status=status.HTTP_200_OK)
+    #         else:
+    #             return Response(return_response(1, 'Template Config not updated',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+    #     else:
+    #         # CREATE NEW TEMPLATE CONFIG
+    #         serializer = CompanyTemplateConfigSerializer(data=request.data)
+    #         if serializer.is_valid():
+    #             print("created new one")
+    #             company_template = CompanyTemplateConfig.objects.get(company_id=company_id)
+    #             company_template.active = False
+    #             company_template.save()
+    #             request.data['active'] = True
+    #             # serializer.save()
+    #             return Response(return_response(2, 'Template Config created successfully'), status=status.HTTP_201_CREATED)
+    #         else:
+    #             return Response(return_response(1, 'Template Config not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+ 
+       
 
 class OpsTableView(APIView):
     permission_classes = [IsAuthenticated]
