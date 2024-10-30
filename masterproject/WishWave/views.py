@@ -536,30 +536,57 @@ class SubscriptionTableView(APIView):
         all_subscription_table = Subscription.objects.filter(company_id=payload.get('company_id'))
         serializer = SubscriptionSerializer(all_subscription_table, many=True)
         return Response(return_response(2, 'Subscription Table found', serializer.data), status=status.HTTP_200_OK)
-    
     def post(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-        print(request.data)
-        # request.data['company_id'] = payload.get('company_id')
-        # serializer = SubscriptionSerializer(data=request.data)
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     return Response(return_response(2, 'Subscription Table created successfully'), status=status.HTTP_201_CREATED)
-        # else:
-        #     return Response(return_response(1, 'Subscription Table not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+        company_id = payload.get('company_id')
+        errors = []
 
+        # Retrieve the company name once based on company_id
+        try:
+            company = Company.objects.get(company_id=company_id)
+            company_name = company.company_name  # Assuming 'company_name' is the field name
+        except Company.DoesNotExist:
+            return Response({"error": "Company not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        for item in request.data:
+            item['company_id'] = company_id
+            item['company_name'] = company_name  # Add company name to each item
+            serializer = SubscriptionSerializer(data=item)
+            
+            if serializer.is_valid():
+                print('save')
+                # serializer.save()  # Uncomment this line to save the data
+            else:
+                errors.append({"data": item, "errors": serializer.errors})
+
+        if errors:
+            return Response(return_response(1, 'Some subscriptions were not created', errors), status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(return_response(2, 'All subscriptions created successfully'), status=status.HTTP_201_CREATED)
     def put(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-        subscription_id = payload.get('subscription_id')
-        try:
-            subscription_table = Subscription.objects.get(subscription_id=subscription_id)
-        except Subscription.DoesNotExist:
-            return Response({"error": "Subscription Table not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = SubscriptionSerializer(subscription_table, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(return_response(2, 'Subscription Table updated successfully'), status=status.HTTP_200_OK)
-        else:
-            return Response(return_response(1, 'Subscription Table not updated',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+        company_id = payload.get('company_id')
+        errors = []
 
+        # Retrieve the company name once based on company_id
+        try:
+            company = Company.objects.get(company_id=company_id)
+            company_name = company.company_name  # Assuming 'company_name' is the field name
+        except Company.DoesNotExist:
+            return Response({"error": "Company not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        for item in request.data:
+            item['company_id'] = company_id
+            item['company_name'] = company_name  # Add company name to each item
+            subscription_table = Subscription.objects.get(subscription_id= item.get('subscription_id'))
+            serializer = SubscriptionSerializer(subscription_table, data=item, partial=True)
             
+            if serializer.is_valid():
+                serializer.save()  
+            else:
+                errors.append({"data": item, "errors": serializer.errors})
+
+        if errors:
+            return Response(return_response(1, 'Some subscriptions were not Updated', errors), status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(return_response(2, 'All subscriptions Updated successfully'), status=status.HTTP_201_CREATED)
