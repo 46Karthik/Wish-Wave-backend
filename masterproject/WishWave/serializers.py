@@ -173,6 +173,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = [
+            'subscription_id',
             'company_id', 
             'company_name', 
             'subscription_type', 
