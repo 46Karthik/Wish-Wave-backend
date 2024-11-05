@@ -190,5 +190,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'kid3_included', 
             'kid3_cost', 
             'total_pax', 
-            'total_cost'
+            'total_cost',
+            'updated_at',
+            'user_id'
         ]
