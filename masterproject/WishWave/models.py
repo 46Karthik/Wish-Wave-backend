@@ -220,7 +220,9 @@ class Subscription(models.Model):
     kid2_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     kid3_included = models.BooleanField(default=False)
     kid3_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    user_id = models.IntegerField() 
     total_pax = models.IntegerField(default=1)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 

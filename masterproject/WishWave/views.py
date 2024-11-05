@@ -129,6 +129,8 @@ class verify_otp(APIView):
         refresh['email'] = user_profile.user.email
         refresh['role_id'] = user_profile.role_id
         refresh['company_id'] = user_profile.company_id
+        refresh['login_id'] = user_profile.id
+        refresh['username'] = user_profile.username
 
         return Response(return_response(2, 'Login successful', {
             'refresh': str(refresh),
@@ -142,7 +144,19 @@ class get_company_code(APIView):
             return Response(return_response(2, 'No company found', 1), status=status.HTTP_200_OK)
         return Response(return_response(2, 'Company found', last_company.company_id + 1), status=status.HTTP_200_OK)
 
-
+class CompanyView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        if  payload['role_id'] == '4':
+            company_list = Company.objects.all()
+            serializer = CompanySerializer(company_list, many=True)
+            return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
+        else:
+            return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
+        # company_list = Company.objects.filter(company_id=payload['company_id'])
+        # serializer = CompanySerializer(company_list, many=True)
+        # return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
 class EmployeeCreateView(APIView):
     # permission_classes = [IsAuthenticated]
     def get(self, request, id=None):
@@ -210,7 +224,7 @@ class EmployeeBulkUploadView(APIView):
             return Response({"error": "No Base64 data provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Split the Base64 data to get the actual Base64 string
-        print(base64_data)
+        # print(base64_data)
         try:
             header, encoded = base64_data.split(',')
             decoded = base64.b64decode(encoded)
@@ -282,6 +296,35 @@ class EmployeeBulkUploadView(APIView):
 
         return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
 
+class SubscriptionEmployeedata(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+      # Get the employee IDs for the specified company
+        employee_ids = Employees.objects.filter(company_id=payload['company_id']).values_list('employee_id', flat=True)
+
+        # Count the spouses associated with these employees
+        spouse_count = Spouse.objects.filter(employee_id__in=employee_ids).count()
+
+        # Count the children associated with these employees
+        child_count = Child.objects.filter(employee_id__in=employee_ids).count()
+
+        # Get the employee count
+        employee_count = employee_ids.count()
+        
+        # user name as subscription table last updated by
+        user_id = Subscription.objects.filter(company_id=payload['company_id'])
+        username = UserProfile.objects.get(id=user_id.last().user_id).username
+        # Prepare the data dictionary
+        listdata = {
+            'employee_count': employee_count,
+            'spouse_count': spouse_count,
+            'child_count': child_count,
+            'username': username,
+            'last_updated_by': user_id.last().user_id,
+        }
+    
+        return Response(return_response(2, 'List of employee count', listdata), status=status.HTTP_200_OK)
 class VendorView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = VendorSerializer
@@ -536,6 +579,7 @@ class SubscriptionTableView(APIView):
         all_subscription_table = Subscription.objects.filter(company_id=payload.get('company_id'))
         serializer = SubscriptionSerializer(all_subscription_table, many=True)
         return Response(return_response(2, 'Subscription Table found', serializer.data), status=status.HTTP_200_OK)
+        
     def post(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
         company_id = payload.get('company_id')
@@ -551,11 +595,11 @@ class SubscriptionTableView(APIView):
         for item in request.data:
             item['company_id'] = company_id
             item['company_name'] = company_name  # Add company name to each item
+            item['user_id'] = payload.get('login_id')
             serializer = SubscriptionSerializer(data=item)
             
             if serializer.is_valid():
-                print('save')
-                # serializer.save()  # Uncomment this line to save the data
+                serializer.save()  
             else:
                 errors.append({"data": item, "errors": serializer.errors})
 
@@ -578,6 +622,7 @@ class SubscriptionTableView(APIView):
         for item in request.data:
             item['company_id'] = company_id
             item['company_name'] = company_name  # Add company name to each item
+            item['user_id'] = payload.get('login_id')
             subscription_table = Subscription.objects.get(subscription_id= item.get('subscription_id'))
             serializer = SubscriptionSerializer(subscription_table, data=item, partial=True)
             
@@ -585,7 +630,6 @@ class SubscriptionTableView(APIView):
                 serializer.save()  
             else:
                 errors.append({"data": item, "errors": serializer.errors})
-
         if errors:
             return Response(return_response(1, 'Some subscriptions were not Updated', errors), status=status.HTTP_400_BAD_REQUEST)
 
