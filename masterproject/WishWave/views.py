@@ -19,11 +19,22 @@ import pandas as pd
 #         # permission_classes = [IsAuthenticated]
 #         # permission_classes = [AllowAny]
 
-class RegisterCompany(APIView):    
-    def get(self, request):
-        company_list = Company.objects.all()
-        serializer = CompanySerializer(company_list, many=True)
-        return Response(serializer.data,status=status.HTTP_200_OK)
+class RegisterCompany(APIView):   
+    permission_classes = [IsAuthenticated] 
+    # comany table get by id
+    def get(self, request, id=None):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        if payload['role_id'] == '4':
+            if id is not None:
+                all_company = Company.objects.get(company_id=id)
+                serializer = CompanySerializer(all_company)
+                return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
+            else:
+                all_company = Company.objects.all()
+                serializer = CompanySerializer(all_company, many=True)
+                return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
+        else:
+            return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
     def post(self, request):
         # company table
         if Company.objects.filter(company_name=request.data.get('company_name')).exists():
@@ -80,6 +91,23 @@ class RegisterCompany(APIView):
             return Response({'error': 'User not created'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def put(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        if payload['role_id'] == '4':
+            #  update company details as company table
+            if Company.objects.filter(company_id=request.data.get('company_id')).exists():
+                company = Company.objects.get(company_id=request.data.get('company_id'))
+                serializer = CompanySerializer(company, data=request.data, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(return_response(2, 'Company updated successfully'), status=status.HTTP_200_OK)
+                else:
+                    return Response(return_response(1, 'Company not updated', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response(return_response(1, 'Company not found'), status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
 class send_mail_otp(APIView):
  def post(self, request):
         email = request.data.get('email') 
@@ -144,19 +172,6 @@ class get_company_code(APIView):
             return Response(return_response(2, 'No company found', 1), status=status.HTTP_200_OK)
         return Response(return_response(2, 'Company found', last_company.company_id + 1), status=status.HTTP_200_OK)
 
-class CompanyView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        payload = Decode_JWt(request.headers.get('Authorization'))
-        if  payload['role_id'] == '4':
-            company_list = Company.objects.all()
-            serializer = CompanySerializer(company_list, many=True)
-            return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
-        else:
-            return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
-        # company_list = Company.objects.filter(company_id=payload['company_id'])
-        # serializer = CompanySerializer(company_list, many=True)
-        # return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
 class EmployeeCreateView(APIView):
     # permission_classes = [IsAuthenticated]
     def get(self, request, id=None):
@@ -508,67 +523,13 @@ class CompanyTemplateConfigView(APIView):
             else:
                 return Response(return_response(1, 'Template Config not created', serializer.errors), status=status.HTTP_400_BAD_REQUEST)      
 
-        
-        
-    # def put(self, request):
-    #     payload = Decode_JWt(request.headers.get('Authorization'))
-    #     company_id = payload.get('company_id')
-    #     request.data['company_id'] = company_id
-    #     try:
-    #         company_template = CompanyTemplateConfig.objects.get(company_id=company_id,active = True)
-    #     except CompanyTemplateConfig.DoesNotExist:
-    #         return Response({"error": "Company template not found"}, status=status.HTTP_404_NOT_FOUND)
-
-    #     # UPLOAD LOGO
-       
-    #     if 'new_logo_upload' in request.data and request.data['new_logo_upload'] == True:
-    #         file = request.data.get('new_logo_base64')
-    #         if not file:
-    #             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-    #         delete_image = delete_image_from_s3(request.data.get('logo_path'))
-    #         if not delete_image:
-    #             return Response({"error": "Logo file not found"}, status=status.HTTP_400_BAD_REQUEST)
-    #         else:
-    #             file_path = upload_base64_image_to_s3(file, 'company', request.data.get('logo_name'), 'image/png')
-    #             if file_path == "error":
-    #                 return Response(return_response(1, 'Invalid AWS credentials'), status=status.HTTP_400_BAD_REQUEST)
-
-    #             request.data['logo_path'] = file_path
-    #     # VALIDATE TEMPLATE CONFIG FOR NEW OR OLD 
-    #     company_template = CompanyTemplateConfig.objects.get(company_id=company_id)
-
-    #     if request.data['template_img_id'] == company_template.template_img_id and request.data['content'] == company_template.content:
-    #        # UPDATE TEMPLATE CONFIG
-    #         serializer = CompanyTemplateConfigSerializer(company_template, data=request.data, partial=True) 
-    #         if serializer.is_valid():
-    #             print("updated")
-    #             # serializer.save()
-    #             return Response(return_response(2, 'Template Config updated successfully'), status=status.HTTP_200_OK)
-    #         else:
-    #             return Response(return_response(1, 'Template Config not updated',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
-    #     else:
-    #         # CREATE NEW TEMPLATE CONFIG
-    #         serializer = CompanyTemplateConfigSerializer(data=request.data)
-    #         if serializer.is_valid():
-    #             print("created new one")
-    #             company_template = CompanyTemplateConfig.objects.get(company_id=company_id)
-    #             company_template.active = False
-    #             company_template.save()
-    #             request.data['active'] = True
-    #             # serializer.save()
-    #             return Response(return_response(2, 'Template Config created successfully'), status=status.HTTP_201_CREATED)
-    #         else:
-    #             return Response(return_response(1, 'Template Config not created',serializer.errors), status=status.HTTP_400_BAD_REQUEST)
-
- 
-       
+           
 
 class OpsTableView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-        all_ops_table = OpsTable.objects.filter(company_id=payload.get('company_id'))
+        all_ops_table = OpsTable.objects.all()
         serializer = OpsTableSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
 
