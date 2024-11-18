@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsTable,Subscription
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsTableSerializer,SubscriptionSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
@@ -311,35 +311,35 @@ class EmployeeBulkUploadView(APIView):
 
         return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
 
-class SubscriptionEmployeedata(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        payload = Decode_JWt(request.headers.get('Authorization'))
-      # Get the employee IDs for the specified company
-        employee_ids = Employees.objects.filter(company_id=payload['company_id']).values_list('employee_id', flat=True)
+# class SubscriptionEmployeedata(APIView):
+#     permission_classes = [IsAuthenticated]
+#     def get(self, request):
+#         payload = Decode_JWt(request.headers.get('Authorization'))
+#       # Get the employee IDs for the specified company
+#         employee_ids = Employees.objects.filter(company_id=payload['company_id']).values_list('employee_id', flat=True)
 
-        # Count the spouses associated with these employees
-        spouse_count = Spouse.objects.filter(employee_id__in=employee_ids).count()
+#         # Count the spouses associated with these employees
+#         spouse_count = Spouse.objects.filter(employee_id__in=employee_ids).count()
 
-        # Count the children associated with these employees
-        child_count = Child.objects.filter(employee_id__in=employee_ids).count()
+#         # Count the children associated with these employees
+#         child_count = Child.objects.filter(employee_id__in=employee_ids).count()
 
-        # Get the employee count
-        employee_count = employee_ids.count()
+#         # Get the employee count
+#         employee_count = employee_ids.count()
         
-        # user name as subscription table last updated by
-        user_id = Subscription.objects.filter(company_id=payload['company_id'])
-        username = UserProfile.objects.get(id=user_id.last().user_id).username
-        # Prepare the data dictionary
-        listdata = {
-            'employee_count': employee_count,
-            'spouse_count': spouse_count,
-            'child_count': child_count,
-            'username': username,
-            'last_updated_by': user_id.last().user_id,
-        }
+#         # user name as subscription table last updated by
+#         user_id = Subscription.objects.filter(company_id=payload['company_id'])
+#         username = UserProfile.objects.get(id=user_id.last().user_id).username
+#         # Prepare the data dictionary
+#         listdata = {
+#             'employee_count': employee_count,
+#             'spouse_count': spouse_count,
+#             'child_count': child_count,
+#             'username': username,
+#             'last_updated_by': user_id.last().user_id,
+#         }
     
-        return Response(return_response(2, 'List of employee count', listdata), status=status.HTTP_200_OK)
+#         return Response(return_response(2, 'List of employee count', listdata), status=status.HTTP_200_OK)
 class VendorView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = VendorSerializer
@@ -529,8 +529,8 @@ class OpsTableView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-        all_ops_table = OpsTable.objects.all()
-        serializer = OpsTableSerializer(all_ops_table, many=True)
+        all_ops_table = OpsView.objects.all()
+        serializer = OpsSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
 
 class SubscriptionTableView(APIView):
@@ -595,3 +595,19 @@ class SubscriptionTableView(APIView):
             return Response(return_response(1, 'Some subscriptions were not Updated', errors), status=status.HTTP_400_BAD_REQUEST)
 
         return Response(return_response(2, 'All subscriptions Updated successfully'), status=status.HTTP_201_CREATED)
+
+class SubscriptionCompanydata(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        companydetails = Company.objects.get(company_id=payload.get('company_id'))
+        serializer = CompanySerializer(companydetails)
+        return Response(return_response(2, 'Company details found', serializer.data), status=status.HTTP_200_OK)
+        
+class ProductView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        productlist = Product.objects.all()
+        serializer = ProductSerializer(productlist, many=True)
+        return Response(return_response(2, 'Product details found', serializer.data), status=status.HTTP_200_OK)

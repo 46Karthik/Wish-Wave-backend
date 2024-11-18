@@ -23,7 +23,31 @@ class CompanySerializer(serializers.ModelSerializer):
             'contact_phone_no', 
             'contact_designation', 
             'contact_role_app', 
-            'active'
+            'active',
+
+
+            # Occasion Fields
+            'occasionsbirthday',
+            'occasionsweddinganniversary',
+            'occasionsworkanniversary',
+            'occasionsadhoc',
+            'occasionsdiwaligift',
+            'occasionspoojagifts',
+            'occasionscompanyanniversary',
+            
+            # Celebration Fields
+            'celebrateEmployeeBirthday',
+            'celebrateEmpWeddingAnniversary',
+            'celebrateEmpWorkAnniversary',
+            'celebrateSpouseBirthday',
+            'celebrateSpouseWeddingAnniversary',
+            'celebrateSpouseWorkAnniversary',
+            'celebrateKid1Birthday',
+            'celebrateKid2Birthday',
+            'celebrateKid3Birthday',
+            'uniform',
+            'varied',
+            'employeeLevels',
         ]
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -65,7 +89,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = [
             'employee_id','employee_name', 'company_id', 'employee_dept', 'employee_email', 'employee_phone',
             'whatsapp_phone_number', 'employee_dob', 'employee_doj', 'anniversary_date', 
-            'address', 'state', 'pincode', 'country', 'gender', 'marital_status', 'file_path',
+            'address', 'address2', 'city', 'state', 'pincode', 'country', 'gender', 'marital_status', 'file_path',
             'spouse', 'children'
         ]
     def create(self, validated_data):
@@ -153,44 +177,77 @@ class CompanyTemplateConfigSerializer(serializers.ModelSerializer):
             'active',
         ]
 
-class OpsTableSerializer(serializers.ModelSerializer):
+class OpsViewSerializer(serializers.ModelSerializer):
     class Meta:
-        model = OpsTable
+        model = OpsView
         fields = [
-            'ops_id', 
-            'company_id', 
-            'employee_id', 
-            'employee_name', 
-            'img_path', 
-            'image_generate', 
-            'mail_send', 
-            'whats_app_send', 
-            'gift_sent', 
-            'cake_send'
-        ] 
+            'ops_id', 'company_name', 'occasion', 'event_date', 
+            'employee_id', 'name_of_person', 'relation', 'address1', 
+            'address2', 'city', 'zipcode', 'email_id', 'phone_number', 
+            'subscription', 'image_status', 'email_status', 'whatsapp_status', 
+            'cake_order_date', 'cake_delivery_date', 'cake_status', 'cake_otp', 
+            'gift_order_date', 'gift_delivery_date', 'gift_status', 'gift_otp'
+        ]
+
+class EmailWhatsAppTableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailWhatsAppTable
+        fields = [
+            'order_id', 'employee_id', 'company_id', 'email_id', 
+            'phone_number', 'email_image_link', 'whatsapp_image_link', 
+            'subscription_details', 'event_date', 'image_generation_timestamp', 
+            'mail_schedule_time', 'whatsapp_schedule_time', 
+            'mail_sent_time', 'whatsapp_sent_time'
+        ]
+
+class CakeAndGiftSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CakeAndGift
+        fields = [
+            'order_id', 'employee_id', 'company_id', 'email_id', 'phone_number', 
+            'delivery_address1', 'delivery_address2', 'delivery_city', 'delivery_zip',
+            
+            # Cake Delivery Information
+            'cake_scheduled_delivery_date', 'cake_scheduled_order_date', 'cake_vendor_id', 
+            'cake_shop_name', 'cake_from_address', 'cake_from_city', 'cake_from_state', 
+            'cake_from_pincode', 'cake_flavour', 'cake_weight', 'cake_wish_message', 
+            'cake_delivery_person_name', 'cake_delivery_person_number', 
+            'cake_delivery_verification_link', 'cake_otp',
+            
+            # Gift Delivery Information
+            'gift_scheduled_delivery_date', 'gift_scheduled_order_date', 'gift_vendor_id', 
+            'gift_shop_name', 'gift_from_address', 'gift_from_city', 'gift_from_state', 
+            'gift_from_pincode', 'gift_article_number', 'gift_weight', 
+            'gift_delivery_person_name', 'gift_delivery_person_number', 
+            'gift_delivery_verification_link', 'gift_otp'
+        ]
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            'product_id', 
+            'code', 
+            'label', 
+            'type', 
+            'variant', 
+            'weight', 
+            'price', 
+            'pkg', 
+            'delivery', 
+            'special_packaging', 
+            'total'
+        ]
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = [
-            'subscription_id',
-            'company_id', 
-            'company_name', 
-            'subscription_type', 
-            'cost_per_act_type', 
-            'currency', 
-            'employee_included', 
-            'emp_cost', 
-            'spouse_included', 
-            'spouse_cost', 
-            'kid1_included', 
-            'kid1_cost', 
-            'kid2_included', 
-            'kid2_cost', 
-            'kid3_included', 
-            'kid3_cost', 
-            'total_pax', 
-            'total_cost',
-            'updated_at',
-            'user_id'
+            'subscription_id', 'company_id', 'company_name', 'user_id', 'occasion', 'emp_level', 'family',
+            'email', 'whatsapp', 'gift', 'custom_gift', 'gift_cost', 
+            'custom_gift_cost', 'email_cost', 'whatsapp_cost','key_name'
         ]
+class EmailConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailConfig
+        fields = ['email_config_id', 'email_host_user', 'email_host_password', 'company_id', 'active']

@@ -46,7 +46,30 @@ class Company(models.Model):
     contact_role_app = models.CharField(max_length=255, blank=True, null=True)     
     active = models.BooleanField(default=False)                                
     created_date = models.DateTimeField(auto_now_add=True)                    
-    modified_date = models.DateTimeField(auto_now=True)                        
+    modified_date = models.DateTimeField(auto_now=True)  
+
+     # Occasion Fields
+    occasionsbirthday = models.BooleanField(default=False)
+    occasionsweddinganniversary = models.BooleanField(default=False)
+    occasionsworkanniversary = models.BooleanField(default=False)
+    occasionsadhoc = models.BooleanField(default=False)
+    occasionsdiwaligift = models.BooleanField(default=False)
+    occasionspoojagifts = models.BooleanField(default=False)
+    occasionscompanyanniversary = models.BooleanField(default=False)
+    
+    celebrateEmployeeBirthday = models.BooleanField(default=False)
+    celebrateEmpWeddingAnniversary = models.BooleanField(default=False)
+    celebrateEmpWorkAnniversary = models.BooleanField(default=False)
+    celebrateSpouseBirthday = models.BooleanField(default=False)
+    celebrateSpouseWeddingAnniversary = models.BooleanField(default=False)
+    celebrateSpouseWorkAnniversary = models.BooleanField(default=False)
+    celebrateKid1Birthday = models.BooleanField(default=False)
+    celebrateKid2Birthday = models.BooleanField(default=False)
+    celebrateKid3Birthday = models.BooleanField(default=False)   
+
+    uniform = models.BooleanField(default=False) 
+    varied = models.BooleanField(default=False)
+    employeeLevels = models.CharField(max_length=255, blank=True, null=True)   
 
     def __str__(self):
         return self.company_name
@@ -63,7 +86,9 @@ class Employees(models.Model):
     employee_dob = models.DateField()
     employee_doj = models.DateField()
     anniversary_date = models.DateField(null=True, blank=True)  # New field
-    address = models.TextField(null=True, blank=True)  # New field
+    address = models.TextField(null=True, blank=True)  
+    address2 = models.TextField(null=True, blank=True)  
+    city = models.CharField(max_length=100, null=True, blank=True)
     state = models.CharField(max_length=100, null=True, blank=True)  # New field
     pincode = models.CharField(max_length=10, null=True, blank=True)  # New field
     country = models.CharField(max_length=100, null=True, blank=True)  # New field
@@ -186,45 +211,152 @@ class CompanyTemplateConfig(models.Model):
         return f"Config {self.config_id} for Company {self.company_id}"
 
 
-class OpsTable(models.Model):
-    ops_id = models.AutoField(primary_key=True) 
-    company_id = models.IntegerField()  
-    employee_id = models.IntegerField() 
-    employee_name = models.CharField(max_length=255) 
-    img_path = models.CharField(max_length=500,blank=True,null=True)
-    image_generate = models.BooleanField(default=False)  
-    mail_send = models.BooleanField(default=False)  
-    whats_app_send = models.BooleanField(default=False) 
-    gift_sent = models.BooleanField(default=False)  
-    cake_send = models.BooleanField(default=False)  
+class OpsView(models.Model):
+    ops_id = models.AutoField(primary_key=True)
+    company_name = models.CharField(max_length=255)
+    occasion = models.CharField(max_length=100)
+    event_date = models.DateField()
+    
+    employee_id = models.IntegerField()
+    name_of_person = models.CharField(max_length=255)
+    relation = models.CharField(max_length=100,blank=True, null=True)
+    address1 = models.CharField(max_length=255,blank=True, null=True)
+    address2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100,blank=True, null=True)
+    zipcode = models.CharField(max_length=20,blank=True, null=True)
+    email_id = models.EmailField()
+    phone_number = models.CharField(max_length=20)
+    subscription = models.CharField(max_length=50,blank=True, null=True)
+    image_status = models.CharField(max_length=50,blank=True, null=True)
+    email_status = models.CharField(max_length=50,blank=True, null=True)
+    whatsapp_status = models.CharField(max_length=50,blank=True, null=True)
+    
+    cake_order_date = models.DateField(blank=True, null=True)
+    cake_delivery_date = models.DateField(blank=True, null=True)
+    cake_status = models.CharField(max_length=50, blank=True, null=True)
+    cake_otp = models.CharField(max_length=10, blank=True, null=True)
+    
+    gift_order_date = models.DateField(blank=True, null=True)
+    gift_delivery_date = models.DateField(blank=True, null=True)
+    gift_status = models.CharField(max_length=50, blank=True, null=True)
+    gift_otp = models.CharField(max_length=10, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.employee_name} ({self.ops_id})"
+        return f"{self.company_name} - {self.occasion} on {self.event_date}"
+
+
+class EmailWhatsAppTable(models.Model):
+    order_id = models.AutoField(primary_key=True)
+    employee_id = models.CharField(max_length=100)
+    company_id = models.CharField(max_length=100)
+    email_id = models.EmailField(max_length=255)
+    phone_number = models.CharField(max_length=20,blank=True, null=True)
+    email_image_link = models.URLField(max_length=500,blank=True, null=True)
+    whatsapp_image_link = models.URLField(max_length=500,blank=True, null=True)
+    subscription_details = models.TextField(blank=True, null=True)
+    event_date = models.DateTimeField()
+    image_generation_timestamp = models.DateTimeField(auto_now_add=True)
+    mail_schedule_time = models.DateTimeField(blank=True, null=True)
+    whatsapp_schedule_time = models.DateTimeField()
+    mail_sent_time = models.DateTimeField(null=True, blank=True)
+    whatsapp_sent_time = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Schedule for {self.employee_id} - Order {self.order_id}"
+class CakeAndGift(models.Model):
+    order_id = models.AutoField(primary_key=True)
+    employee_id = models.IntegerField()
+    company_id = models.IntegerField()
+    email_id = models.EmailField()
+    phone_number = models.CharField(max_length=15)
+    delivery_address1 = models.CharField(max_length=255)
+    delivery_address2 = models.CharField(max_length=255, blank=True, null=True)
+    delivery_city = models.CharField(max_length=100)
+    delivery_zip = models.CharField(max_length=10)
+
+    # Cake Delivery Information
+    cake_scheduled_delivery_date = models.DateField()
+    cake_scheduled_order_date = models.DateField()
+    cake_vendor_id = models.IntegerField()
+    cake_shop_name = models.CharField(max_length=100)
+
+    cake_from_address = models.CharField(max_length=255)
+    cake_from_city = models.CharField(max_length=100)
+    cake_from_state = models.CharField(max_length=100)
+    cake_from_pincode = models.CharField(max_length=10)
+    cake_flavour = models.CharField(max_length=50)
+    cake_weight = models.DecimalField(max_digits=5, decimal_places=2)  # assuming weight in kg
+    cake_wish_message = models.TextField(blank=True, null=True)
+    cake_delivery_person_name = models.CharField(max_length=100)
+    cake_delivery_person_number = models.CharField(max_length=15)
+    cake_delivery_verification_link = models.URLField(blank=True, null=True)
+    cake_otp = models.CharField(max_length=6)
+
+    # Gift Delivery Information
+    gift_scheduled_delivery_date = models.DateField()
+    gift_scheduled_order_date = models.DateField()
+    gift_vendor_id = models.IntegerField()
+    gift_shop_name = models.CharField(max_length=100)
+
+    gift_from_address = models.CharField(max_length=255)
+    gift_from_city = models.CharField(max_length=100)
+    gift_from_state = models.CharField(max_length=100)
+    gift_from_pincode = models.CharField(max_length=10)
+    gift_article_number = models.CharField(max_length=50)
+    gift_weight = models.DecimalField(max_digits=5, decimal_places=2)  # assuming weight in kg
+    gift_delivery_person_name = models.CharField(max_length=100)
+    gift_delivery_person_number = models.CharField(max_length=15)
+    gift_delivery_verification_link = models.URLField(blank=True, null=True)
+    gift_otp = models.CharField(max_length=6)
+
+    def __str__(self):
+        return f"Delivery for Employee ID: {self.employee_id} (Company ID: {self.company_id})"
+
+
+class Product(models.Model):
+    product_id = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=50, unique=True)
+    label = models.CharField(max_length=100)
+    type = models.CharField(max_length=50)
+    variant = models.CharField(max_length=50)
+    weight = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    pkg = models.DecimalField(max_digits=10, decimal_places=2)
+    delivery = models.DecimalField(max_digits=10, decimal_places=2)
+    special_packaging = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.label} - {self.variant}"
 
 class Subscription(models.Model):
     subscription_id = models.AutoField(primary_key=True)
-    company_id = models.CharField(max_length=20)
-    company_name = models.CharField(max_length=100)
-    subscription_type = models.CharField(max_length=50)
-    cost_per_act_type = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=10)
-    
-    # Boolean fields to indicate if the subscription includes each person type
-    employee_included = models.BooleanField(default=False)
-    emp_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    spouse_included = models.BooleanField(default=False)
-    spouse_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    kid1_included = models.BooleanField(default=False)
-    kid1_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    kid2_included = models.BooleanField(default=False)
-    kid2_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    kid3_included = models.BooleanField(default=False)
-    kid3_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    user_id = models.IntegerField() 
-    total_pax = models.IntegerField(default=1)
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    company_id = models.IntegerField()
+    company_name = models.CharField(max_length=255)
+    user_id = models.IntegerField()
+    occasion = models.CharField(max_length=100)
+    emp_level = models.CharField(max_length=50)  # Employee level, e.g., Junior, Senior
+    family = models.CharField(max_length=50)  # Indicates if family members are included
+    email = models.BooleanField(default=False)  # Indicates if email is sent
+    whatsapp = models.BooleanField(default=False)  # Indicates if WhatsApp message is sent
+    gift = models.CharField(max_length=100, blank=True, null=True)  # Standard gift description
+    custom_gift = models.CharField(max_length=100, blank=True, null=True)  # Custom gift description
+    gift_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    custom_gift_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    email_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    whatsapp_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    key_name = models.CharField(max_length=100, blank=True, null=True)  # Key name
+
 
     def __str__(self):
-        return f"{self.company_name} - {self.subscription_type}"
+        return f"Subscription {self.subscription_id} for Company {self.company_id}"
+
+class EmailConfig(models.Model):
+    email_config_id = models.AutoField(primary_key=True)
+    email_host_user = models.EmailField()
+    email_host_password = models.CharField(max_length=255)
+    company_id = models.IntegerField()
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.email_host_user} ({'Active' if self.active else 'Inactive'})"
