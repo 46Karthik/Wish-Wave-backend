@@ -21,5 +21,7 @@ urlpatterns = [
     path('company-template-config/', CompanyTemplateConfigView.as_view(), name='company-template-config'),
     path('ops-table/', OpsTableView.as_view(), name='ops-table'),
     path('Subscription/', SubscriptionTableView.as_view(), name='Subscription-table'),
-    path('SubscriptionEmployeedata/', SubscriptionEmployeedata.as_view(), name='Subscription-employeedata'),
+    # path('SubscriptionEmployeedata/', SubscriptionEmployeedata.as_view(), name='Subscription-employeedata'),
+    path('SubscriptionCompanydata/', SubscriptionCompanydata.as_view(), name='Subscription-companydata'),
+    path('product/', ProductView.as_view(), name='product'),
 ]
