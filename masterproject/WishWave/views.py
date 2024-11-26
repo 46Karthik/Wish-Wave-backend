@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
@@ -218,7 +218,8 @@ class EmployeeCreateView(APIView):
             payload = Decode_JWt(request.headers.get('Authorization'))
             request.data['company_id'] = payload['company_id']
             request.data['employee_id'] = id
-            serializer = EmployeeSerializer(data=request.data)
+            employee=Employees.objects.get(employee_id=request.data.get('employee_id'))
+            serializer = EmployeeSerializer(employee, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save()
                 return Response(return_response(2,"Employee Updated Successfully",serializer.data), status=status.HTTP_201_CREATED)
@@ -611,3 +612,47 @@ class ProductView(APIView):
         productlist = Product.objects.all()
         serializer = ProductSerializer(productlist, many=True)
         return Response(return_response(2, 'Product details found', serializer.data), status=status.HTTP_200_OK)
+        
+class ScheduleView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        schedule = Schedule.objects.all()
+        serializer = ScheduleSerializer(schedule, many=True)
+        return Response(return_response(2, 'Schedule details found', serializer.data), status=status.HTTP_200_OK)
+
+
+class EmailConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        company = EmailConfig.objects.filter(company_id=payload['company_id'])
+        print(company.count())
+        if company.count() == 0:
+            return Response(return_response(3, 'Eamail Defult value'), status=status.HTTP_200_OK)
+        else:
+            email_config = EmailConfig.objects.filter(company_id=payload['company_id'])
+            serializer = EmailConfigSerializer(email_config, many=True)
+            return Response(return_response(2, 'Email Config found', serializer.data), status=status.HTTP_200_OK)
+
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        request.data['company_id'] = payload['company_id']
+        serializer = EmailConfigSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, 'Email Config created successfully'), status=status.HTTP_201_CREATED)
+        else:
+            return Response(return_response(1, 'Email Config not created', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        company_id = payload.get('company_id')
+        request.data['company_id'] = company_id
+        emailconfig=EmailConfig.objects.get(email_config_id=request.data.get('email_config_id'))
+        serializer = EmailConfigSerializer(emailconfig, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, 'Email Config updated successfully'), status=status.HTTP_201_CREATED)
+        else:
+            return Response(return_response(1, 'Email Config not updated', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+        

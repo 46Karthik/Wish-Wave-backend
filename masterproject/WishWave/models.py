@@ -216,6 +216,7 @@ class OpsView(models.Model):
     company_name = models.CharField(max_length=255)
     occasion = models.CharField(max_length=100)
     event_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
     
     employee_id = models.IntegerField()
     name_of_person = models.CharField(max_length=255)
@@ -255,7 +256,7 @@ class EmailWhatsAppTable(models.Model):
     whatsapp_image_link = models.URLField(max_length=500,blank=True, null=True)
     subscription_details = models.TextField(blank=True, null=True)
     event_date = models.DateTimeField()
-    image_generation_timestamp = models.DateTimeField(auto_now_add=True)
+    image_generation_timestamp = models.DateTimeField(blank=True, null=True)
     mail_schedule_time = models.DateTimeField(blank=True, null=True)
     whatsapp_schedule_time = models.DateTimeField()
     mail_sent_time = models.DateTimeField(null=True, blank=True)
@@ -275,39 +276,39 @@ class CakeAndGift(models.Model):
     delivery_zip = models.CharField(max_length=10)
 
     # Cake Delivery Information
-    cake_scheduled_delivery_date = models.DateField()
-    cake_scheduled_order_date = models.DateField()
-    cake_vendor_id = models.IntegerField()
+    cake_scheduled_delivery_date = models.DateField(blank=True, null=True)
+    cake_scheduled_order_date = models.DateField(blank=True, null=True)
+    cake_vendor_id = models.IntegerField(blank=True, null=True)
     cake_shop_name = models.CharField(max_length=100)
 
     cake_from_address = models.CharField(max_length=255)
     cake_from_city = models.CharField(max_length=100)
     cake_from_state = models.CharField(max_length=100)
     cake_from_pincode = models.CharField(max_length=10)
-    cake_flavour = models.CharField(max_length=50)
-    cake_weight = models.DecimalField(max_digits=5, decimal_places=2)  # assuming weight in kg
+    cake_flavour = models.CharField(max_length=50,blank=True, null=True)
+    cake_weight = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # assuming weight in kg
     cake_wish_message = models.TextField(blank=True, null=True)
-    cake_delivery_person_name = models.CharField(max_length=100)
-    cake_delivery_person_number = models.CharField(max_length=15)
+    cake_delivery_person_name = models.CharField(max_length=100,blank=True, null=True)
+    cake_delivery_person_number = models.CharField(max_length=15,blank=True, null=True)
     cake_delivery_verification_link = models.URLField(blank=True, null=True)
-    cake_otp = models.CharField(max_length=6)
+    cake_otp = models.CharField(max_length=6,blank=True, null=True)
 
     # Gift Delivery Information
-    gift_scheduled_delivery_date = models.DateField()
-    gift_scheduled_order_date = models.DateField()
-    gift_vendor_id = models.IntegerField()
+    gift_scheduled_delivery_date = models.DateField(blank=True, null=True)
+    gift_scheduled_order_date = models.DateField(blank=True, null=True)
+    gift_vendor_id = models.IntegerField(blank=True, null=True)
     gift_shop_name = models.CharField(max_length=100)
 
     gift_from_address = models.CharField(max_length=255)
     gift_from_city = models.CharField(max_length=100)
     gift_from_state = models.CharField(max_length=100)
     gift_from_pincode = models.CharField(max_length=10)
-    gift_article_number = models.CharField(max_length=50)
-    gift_weight = models.DecimalField(max_digits=5, decimal_places=2)  # assuming weight in kg
-    gift_delivery_person_name = models.CharField(max_length=100)
-    gift_delivery_person_number = models.CharField(max_length=15)
+    gift_article_number = models.CharField(max_length=50,blank=True, null=True)
+    gift_weight = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # assuming weight in kg
+    gift_delivery_person_name = models.CharField(max_length=100,blank=True, null=True)
+    gift_delivery_person_number = models.CharField(max_length=15,blank=True, null=True)
     gift_delivery_verification_link = models.URLField(blank=True, null=True)
-    gift_otp = models.CharField(max_length=6)
+    gift_otp = models.CharField(max_length=6,blank=True, null=True)
 
     def __str__(self):
         return f"Delivery for Employee ID: {self.employee_id} (Company ID: {self.company_id})"
@@ -360,3 +361,12 @@ class EmailConfig(models.Model):
 
     def __str__(self):
         return f"{self.email_host_user} ({'Active' if self.active else 'Inactive'})"
+
+class Schedule(models.Model):
+    schedule_id = models.AutoField(primary_key=True)
+    schedule_name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    details = models.JSONField()
+
+    def __str__(self):
+        return f"{self.schedule_name}"
