@@ -250,4 +250,8 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 class EmailConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailConfig
+<<<<<<< Updated upstream
         fields = ['email_config_id', 'email_host_user', 'email_host_password', 'company_id', 'active']
+=======
+        fields = ['email_config_id', 'email_host_user', 'email_host_password', 'company_id', 'active']
+>>>>>>> Stashed changes

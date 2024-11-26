@@ -218,7 +218,8 @@ class EmployeeCreateView(APIView):
             payload = Decode_JWt(request.headers.get('Authorization'))
             request.data['company_id'] = payload['company_id']
             request.data['employee_id'] = id
-            serializer = EmployeeSerializer(data=request.data)
+            employee=Employees.objects.get(employee_id=request.data.get('employee_id'))
+            serializer = EmployeeSerializer(employee, data=request.data,partial=True)
             if serializer.is_valid():
                 serializer.save()
                 return Response(return_response(2,"Employee Updated Successfully",serializer.data), status=status.HTTP_201_CREATED)
@@ -611,3 +612,38 @@ class ProductView(APIView):
         productlist = Product.objects.all()
         serializer = ProductSerializer(productlist, many=True)
         return Response(return_response(2, 'Product details found', serializer.data), status=status.HTTP_200_OK)
+    
+class EmailConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        company = EmailConfig.objects.filter(company_id=payload['company_id'])
+        print(company.count())
+        if company.count() == 0:
+            return Response(return_response(3, 'Eamail Defult value'), status=status.HTTP_200_OK)
+        else:
+            email_config = EmailConfig.objects.filter(company_id=payload['company_id'])
+            serializer = EmailConfigSerializer(email_config, many=True)
+            return Response(return_response(2, 'Email Config found', serializer.data), status=status.HTTP_200_OK)
+
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        request.data['company_id'] = payload['company_id']
+        serializer = EmailConfigSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, 'Email Config created successfully'), status=status.HTTP_201_CREATED)
+        else:
+            return Response(return_response(1, 'Email Config not created', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        company_id = payload.get('company_id')
+        request.data['company_id'] = company_id
+        emailconfig=EmailConfig.objects.get(email_config_id=request.data.get('email_config_id'))
+        serializer = EmailConfigSerializer(emailconfig, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, 'Email Config updated successfully'), status=status.HTTP_201_CREATED)
+        else:
+            return Response(return_response(1, 'Email Config not updated', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
