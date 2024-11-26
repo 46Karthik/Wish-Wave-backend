@@ -611,7 +611,7 @@ class ProductView(APIView):
         productlist = Product.objects.all()
         serializer = ProductSerializer(productlist, many=True)
         return Response(return_response(2, 'Product details found', serializer.data), status=status.HTTP_200_OK)
-
+        
 class ScheduleView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
