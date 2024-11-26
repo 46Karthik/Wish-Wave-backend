@@ -251,3 +251,8 @@ class EmailConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailConfig
         fields = ['email_config_id', 'email_host_user', 'email_host_password', 'company_id', 'active']
+
+class ScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Schedule
+        fields = '__all__'

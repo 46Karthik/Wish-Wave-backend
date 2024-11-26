@@ -24,4 +24,5 @@ urlpatterns = [
     # path('SubscriptionEmployeedata/', SubscriptionEmployeedata.as_view(), name='Subscription-employeedata'),
     path('SubscriptionCompanydata/', SubscriptionCompanydata.as_view(), name='Subscription-companydata'),
     path('product/', ProductView.as_view(), name='product'),
+    path('Schedule/',ScheduleView.as_view(), name='Schedule'),
 ]
