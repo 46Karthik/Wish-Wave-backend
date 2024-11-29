@@ -212,14 +212,14 @@ class CakeAndGiftSerializer(serializers.ModelSerializer):
             'cake_shop_name', 'cake_from_address', 'cake_from_city', 'cake_from_state', 
             'cake_from_pincode', 'cake_flavour', 'cake_weight', 'cake_wish_message', 
             'cake_delivery_person_name', 'cake_delivery_person_number', 
-            'cake_delivery_verification_link', 'cake_otp',
+            'cake_delivery_verification_link', 'cake_otp','food_id',
             
             # Gift Delivery Information
             'gift_scheduled_delivery_date', 'gift_scheduled_order_date', 'gift_vendor_id', 
             'gift_shop_name', 'gift_from_address', 'gift_from_city', 'gift_from_state', 
             'gift_from_pincode', 'gift_article_number', 'gift_weight', 
             'gift_delivery_person_name', 'gift_delivery_person_number', 
-            'gift_delivery_verification_link', 'gift_otp'
+            'gift_delivery_verification_link', 'gift_otp','gift_id'
         ]
 
 class ProductSerializer(serializers.ModelSerializer):

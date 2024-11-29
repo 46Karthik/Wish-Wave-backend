@@ -248,6 +248,8 @@ class OpsView(models.Model):
 
 class EmailWhatsAppTable(models.Model):
     order_id = models.AutoField(primary_key=True)
+    occasion = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
     employee_id = models.CharField(max_length=100)
     company_id = models.CharField(max_length=100)
     email_id = models.EmailField(max_length=255)
@@ -266,6 +268,8 @@ class EmailWhatsAppTable(models.Model):
         return f"Schedule for {self.employee_id} - Order {self.order_id}"
 class CakeAndGift(models.Model):
     order_id = models.AutoField(primary_key=True)
+    occasion = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
     employee_id = models.IntegerField()
     company_id = models.IntegerField()
     email_id = models.EmailField()
@@ -285,6 +289,7 @@ class CakeAndGift(models.Model):
     cake_from_city = models.CharField(max_length=100)
     cake_from_state = models.CharField(max_length=100)
     cake_from_pincode = models.CharField(max_length=10)
+    food_id = models.CharField(max_length=100,blank=True, null=True)
     cake_flavour = models.CharField(max_length=50,blank=True, null=True)
     cake_weight = models.DecimalField(max_digits=5, decimal_places=2,blank=True, null=True)  # assuming weight in kg
     cake_wish_message = models.TextField(blank=True, null=True)
@@ -293,8 +298,10 @@ class CakeAndGift(models.Model):
     cake_delivery_verification_link = models.URLField(blank=True, null=True)
     cake_otp = models.CharField(max_length=6,blank=True, null=True)
 
+
     # Gift Delivery Information
     gift_scheduled_delivery_date = models.DateField(blank=True, null=True)
+    gift_id = models.CharField(max_length=100,blank=True, null=True)
     gift_scheduled_order_date = models.DateField(blank=True, null=True)
     gift_vendor_id = models.IntegerField(blank=True, null=True)
     gift_shop_name = models.CharField(max_length=100)
