@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule,CakeAndGift,EmailWhatsAppTable
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer,CakeAndGiftSerializer,EmailWhatsAppTableSerializer
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
@@ -530,8 +530,8 @@ class OpsTableView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-        all_ops_table = OpsView.objects.all()
-        serializer = OpsSerializer(all_ops_table, many=True)
+        all_ops_table = OpsView.objects.all().order_by('-ops_id')
+        serializer = OpsViewSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
 
 class SubscriptionTableView(APIView):
@@ -616,7 +616,7 @@ class ProductView(APIView):
 class ScheduleView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        schedule = Schedule.objects.all()
+        schedule = Schedule.objects.all().order_by('-schedule_id')
         serializer = ScheduleSerializer(schedule, many=True)
         return Response(return_response(2, 'Schedule details found', serializer.data), status=status.HTTP_200_OK)
 
@@ -633,6 +633,13 @@ class EmailConfigView(APIView):
             email_config = EmailConfig.objects.filter(company_id=payload['company_id'])
             serializer = EmailConfigSerializer(email_config, many=True)
             return Response(return_response(2, 'Email Config found', serializer.data), status=status.HTTP_200_OK)
+    # def post(self, request):
+    #     # test mail send
+    #     payload = Decode_JWt(request.headers.get('Authorization'))
+    #     company = EmailConfig.objects.filter(company_id=payload['company_id'])
+    #     if company.count() == 0:
+
+
 
     def post(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
@@ -656,3 +663,18 @@ class EmailConfigView(APIView):
         else:
             return Response(return_response(1, 'Email Config not updated', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
         
+class OpsEditVendorView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        id = request.data.get('employee_id')
+        occasion = request.data.get('occasion')
+        EmailWhatsAppTable_data = EmailWhatsAppTable.objects.filter(employee_id=id,occasion=occasion)
+        email_whatsapp_table_serializer = EmailWhatsAppTableSerializer(EmailWhatsAppTable_data, many=True)
+        food_and_gift = CakeAndGift.objects.filter(employee_id=id,occasion=occasion)
+        serializer = CakeAndGiftSerializer(food_and_gift, many=True)
+        return_data = {
+            "email_whatsapp_table": email_whatsapp_table_serializer.data,
+            "cake_and_gift": serializer.data
+        }
+        return Response(return_response(2, 'Cake and Gift found', return_data), status=status.HTTP_200_OK)

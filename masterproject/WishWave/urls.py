@@ -22,8 +22,8 @@ urlpatterns = [
     path('ops-table/', OpsTableView.as_view(), name='ops-table'),
     path('Subscription/', SubscriptionTableView.as_view(), name='Subscription-table'),
     path('email-config/',EmailConfigView.as_view(), name='email-config'),
-    # path('SubscriptionEmployeedata/', SubscriptionEmployeedata.as_view(), name='Subscription-employeedata'),
     path('SubscriptionCompanydata/', SubscriptionCompanydata.as_view(), name='Subscription-companydata'),
     path('product/', ProductView.as_view(), name='product'),
     path('Schedule/',ScheduleView.as_view(), name='Schedule'),
+    path ('ops-Edit-vendor/', OpsEditVendorView.as_view(), name='ops-Edit-vendor'),
 ]

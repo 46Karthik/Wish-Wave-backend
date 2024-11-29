@@ -114,6 +114,7 @@ class Command(BaseCommand):
                         create_EmailWhatsAppTable = {
                             "employee_id": employee.employee_id,
                             "company_id": employee.company_id,
+                            "occasion": title,
                             "email_id": employee.employee_email,
                             "phone_number": employee.whatsapp_phone_number,
                             "email_image_link": "",
@@ -131,14 +132,16 @@ class Command(BaseCommand):
                                 "employee_id": employee.employee_id,
                                 "company_id": employee.company_id,
                                 "email_id": employee.employee_email,
+                                "occasion": title,
                                 "phone_number": employee.whatsapp_phone_number,
                                 "delivery_address1": employee.address,
                                 "delivery_address2": employee.address2,
                                 "delivery_city": employee.city,
                                 "delivery_zip": employee.pincode,
+                                "food_id": subscription.gift,
                                 "cake_scheduled_delivery_date": None,
                                 "cake_scheduled_order_date": None,
-                                "cake_vendor_id": food_vendor_details.id,
+                                "cake_vendor_id": subscription.custom_gift,
                                 "cake_shop_name": food_vendor_details.name_of_vendor,
                                 "cake_from_address": food_vendor_details.address_1,
                                 "cake_from_city": food_vendor_details.city,
@@ -151,6 +154,7 @@ class Command(BaseCommand):
                                 "cake_delivery_person_number": "",
                                 "cake_delivery_verification_link": "",
                                 "cake_otp": "",
+                                "gift_id": subscription.custom_gift,
                                 "gift_scheduled_delivery_date": None,
                                 "gift_scheduled_order_date": None,
                                 "gift_vendor_id": gift_vendor_details.id,
@@ -475,14 +479,15 @@ class Command(BaseCommand):
             result = self.insetdata_in_opsTable(operation["filters"], operation["title"],"kid")
             status.append(result)
 
-        # Update Schedules details in database
+        # add Schedules details in database
         schedule_details = {
             "schedule_name": "7-Days-Schedule",
             "details": json.dumps(status)
         }
-        Schedule.objects.update_or_create(
+       # Create a new record
+        Schedule.objects.create(
             schedule_name=schedule_details["schedule_name"],
-            defaults={"details": schedule_details["details"]}
+            details=schedule_details["details"]
         )
         print(status)
 

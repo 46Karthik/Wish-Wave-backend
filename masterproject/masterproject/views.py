@@ -4,10 +4,17 @@ import json
 import jwt 
 from django.conf import settings
 import boto3
-import base64
+# import base64
 import io
 from django.core.management.base import BaseCommand
+from WishWave.models import EmailConfig
 from botocore.exceptions import NoCredentialsError, ClientError
+import base64
+from base64 import b64decode
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
+import os
+
 def Decode_JWt(auth_header):
     token = auth_header.split(" ")[1]
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
@@ -16,6 +23,46 @@ def Decode_JWt(auth_header):
 def generate_numeric_otp(length=6):
     otp = ''.join([str(random.randint(0, 9)) for _ in range(length)])
     return otp
+
+def decrypt_password(encrypted_password):
+    secret_key = 'pdX6NOXS/XYDUCm7yzs0vV9w/1zBGZkkEMEpuGW8dGs=' # Ensure your .env file contains SECRET_KEY
+    if not secret_key:
+        raise ValueError("Secret key is not defined. Check your .env file.")
+
+    try:
+        # Ensure the key is 16, 24, or 32 bytes
+        key = secret_key.encode("utf-8")[:32].ljust(32, b'\0')
+
+        # Decode the Base64-encoded encrypted password
+        encrypted_data = base64.b64decode(encrypted_password)
+
+        # Initialize AES cipher with ECB mode (since CryptoJS uses ECB by default without an IV)
+        cipher = AES.new(key, AES.MODE_ECB)
+
+        # Decrypt and unpad
+        decrypted_data = unpad(cipher.decrypt(encrypted_data), AES.block_size)
+
+        return decrypted_data.decode("utf-8")
+    except Exception as e:
+        raise ValueError(f"Decryption failed: {e}")
+def get_company_email_config(company_id):
+    company = EmailConfig.objects.filter(company_id=company_id)
+    if company.count() == 0:
+        defult_obj = {
+            'user': 'karthikfoul66@gmail.com',
+            'pwd': 'veri lfrz yymz cytu'
+        }
+        return defult_obj
+    else:
+        company_email_config = EmailConfig.objects.get(company_id=company_id)
+        custom_obj = {
+            'user': company_email_config.email_host_user,
+            'pwd': company_email_config.email_host_password
+        }
+        return custom_obj
+        
+        
+
 
 # def return_sql_results(sql):
 #     cursor = connection.cursor()
@@ -193,3 +240,5 @@ def upload_image_to_s3_Scheduler(file, path, content_type, file_name):
 
     except Exception as e:
         return f"Error: {str(e)}"
+
+
