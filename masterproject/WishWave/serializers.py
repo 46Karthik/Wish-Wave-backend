@@ -87,10 +87,27 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employees
         fields = [
-            'employee_id','employee_name', 'company_id', 'employee_dept', 'employee_email', 'employee_phone',
-            'whatsapp_phone_number', 'employee_dob', 'employee_doj', 'anniversary_date', 
-            'address', 'address2', 'city', 'state', 'pincode', 'country', 'gender', 'marital_status', 'file_path',
-            'spouse', 'children'
+            'employee_id',
+            'employee_name',
+            'company_id',
+            'employee_dept', 
+            'employee_email',
+            'employee_phone',
+            'whatsapp_phone_number',
+            'employee_dob',
+            'employee_doj',
+            'anniversary_date', 
+            'address', 
+            'address2', 
+            'city', 
+            'state',
+            'pincode', 
+            'country',
+            'gender',
+            'marital_status',
+            'file_path',
+            'spouse',
+            'children'
         ]
     def create(self, validated_data):
         # Extract nested data for Spouse and Children
@@ -219,7 +236,11 @@ class CakeAndGiftSerializer(serializers.ModelSerializer):
             'gift_shop_name', 'gift_from_address', 'gift_from_city', 'gift_from_state', 
             'gift_from_pincode', 'gift_article_number', 'gift_weight', 
             'gift_delivery_person_name', 'gift_delivery_person_number', 
+<<<<<<< Updated upstream
             'gift_delivery_verification_link', 'gift_otp','gift_id'
+=======
+            'gift_delivery_verification_link', 'gift_otp', 'gift_id'
+>>>>>>> Stashed changes
         ]
 
 class ProductSerializer(serializers.ModelSerializer):
