@@ -236,11 +236,7 @@ class CakeAndGiftSerializer(serializers.ModelSerializer):
             'gift_shop_name', 'gift_from_address', 'gift_from_city', 'gift_from_state', 
             'gift_from_pincode', 'gift_article_number', 'gift_weight', 
             'gift_delivery_person_name', 'gift_delivery_person_number', 
-<<<<<<< Updated upstream
-            'gift_delivery_verification_link', 'gift_otp','gift_id'
-=======
             'gift_delivery_verification_link', 'gift_otp', 'gift_id'
->>>>>>> Stashed changes
         ]
 
 class ProductSerializer(serializers.ModelSerializer):

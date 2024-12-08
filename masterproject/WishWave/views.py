@@ -3,26 +3,17 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-<<<<<<< Updated upstream
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule,CakeAndGift,EmailWhatsAppTable
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer,CakeAndGiftSerializer,EmailWhatsAppTableSerializer
-=======
 from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule,EmailWhatsAppTable,CakeAndGift
 from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer,EmailWhatsAppTableSerializer,CakeAndGiftSerializer
->>>>>>> Stashed changes
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
-from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
 import base64
 from io import BytesIO
 import pandas as pd
-<<<<<<< Updated upstream
-=======
 from datetime import datetime, timedelta
 import xlsxwriter
->>>>>>> Stashed changes
 
 
 
@@ -659,13 +650,49 @@ class OpsTableView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-<<<<<<< Updated upstream
-        all_ops_table = OpsView.objects.all().order_by('-ops_id')
-=======
         all_ops_table = OpsView.objects.all()
->>>>>>> Stashed changes
         serializer = OpsViewSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+    def post(self, request):
+        # Extract filter values from the request
+        company_name = request.data.get('company_name')
+        occasion = request.data.get('occasion')
+        relation = request.data.get('relation')
+        event_date = request.data.get('event_date')
+        filter_date_from_To = request.data.get('filter_date_from_To')
+
+        # Build filter criteria dynamically
+        filter_criteria = {}
+        if company_name:
+            filter_criteria['company_name'] = company_name
+        if occasion:
+            filter_criteria['occasion'] = occasion
+        if relation:
+            filter_criteria['relation'] = relation
+        if event_date:
+            filter_criteria['event_date'] = event_date
+
+        # Handle `filter_date_from_To`
+        if filter_date_from_To:
+            today = datetime.now().date()
+            if filter_date_from_To == 'today':
+                filter_criteria['event_date'] = today
+            elif filter_date_from_To == 'tomorrow':
+                filter_criteria['event_date'] = today + timedelta(days=1)
+            elif filter_date_from_To == '3days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=3))
+            elif filter_date_from_To == '5days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=5))
+            elif filter_date_from_To == '7days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=7))
+
+        # Filter based on the criteria
+        filter_ops_table = OpsView.objects.filter(**filter_criteria)
+
+        # Serialize and return the filtered data
+        serializer = OpsViewSerializer(filter_ops_table, many=True)
+        return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+
 
 class SubscriptionTableView(APIView):
     permission_classes = [IsAuthenticated]
@@ -749,7 +776,7 @@ class ProductView(APIView):
 class ScheduleView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        schedule = Schedule.objects.all().order_by('-schedule_id')
+        schedule = Schedule.objects.all()
         serializer = ScheduleSerializer(schedule, many=True)
         return Response(return_response(2, 'Schedule details found', serializer.data), status=status.HTTP_200_OK)
 
@@ -766,13 +793,6 @@ class EmailConfigView(APIView):
             email_config = EmailConfig.objects.filter(company_id=payload['company_id'])
             serializer = EmailConfigSerializer(email_config, many=True)
             return Response(return_response(2, 'Email Config found', serializer.data), status=status.HTTP_200_OK)
-    # def post(self, request):
-    #     # test mail send
-    #     payload = Decode_JWt(request.headers.get('Authorization'))
-    #     company = EmailConfig.objects.filter(company_id=payload['company_id'])
-    #     if company.count() == 0:
-
-
 
     def post(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
@@ -811,8 +831,6 @@ class OpsEditVendorView(APIView):
             "cake_and_gift": serializer.data
         }
         return Response(return_response(2, 'Cake and Gift found', return_data), status=status.HTTP_200_OK)
-<<<<<<< Updated upstream
-=======
 
 class CakeandGiftUpdateView(APIView):
     def patch(self, request):
@@ -827,4 +845,3 @@ class CakeandGiftUpdateView(APIView):
             return Response(return_response(2, "Updated successfully"), status=status.HTTP_200_OK)
         return Response(return_response(1, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
->>>>>>> Stashed changes
