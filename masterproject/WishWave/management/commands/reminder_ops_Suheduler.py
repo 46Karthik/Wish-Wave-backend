@@ -269,6 +269,7 @@ class Command(BaseCommand):
                             create_EmailWhatsAppTable = {
                                 "employee_id": employee.employee_id,
                                 "company_id": employee.company_id,
+                                "occasion": title,
                                 "email_id": spouse.spouse_email,
                                 "phone_number": spouse.spouse_phone,
                                 "email_image_link": "",
@@ -386,6 +387,7 @@ class Command(BaseCommand):
                             create_EmailWhatsAppTable = {
                                 "employee_id": employee.employee_id,
                                 "company_id": employee.company_id,
+                                "occasion": title,
                                 "email_id": employee.employee_email,
                                 "phone_number": employee.whatsapp_phone_number,
                                 "email_image_link": "",

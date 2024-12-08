@@ -8,11 +8,11 @@ from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerial
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
-from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
 import base64
 from io import BytesIO
 import pandas as pd
+from datetime import datetime, timedelta
 
 
 
@@ -533,6 +533,46 @@ class OpsTableView(APIView):
         all_ops_table = OpsView.objects.all()
         serializer = OpsSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+    def post(self, request):
+        # Extract filter values from the request
+        company_name = request.data.get('company_name')
+        occasion = request.data.get('occasion')
+        relation = request.data.get('relation')
+        event_date = request.data.get('event_date')
+        filter_date_from_To = request.data.get('filter_date_from_To')
+
+        # Build filter criteria dynamically
+        filter_criteria = {}
+        if company_name:
+            filter_criteria['company_name'] = company_name
+        if occasion:
+            filter_criteria['occasion'] = occasion
+        if relation:
+            filter_criteria['relation'] = relation
+        if event_date:
+            filter_criteria['event_date'] = event_date
+
+        # Handle `filter_date_from_To`
+        if filter_date_from_To:
+            today = datetime.now().date()
+            if filter_date_from_To == 'today':
+                filter_criteria['event_date'] = today
+            elif filter_date_from_To == 'tomorrow':
+                filter_criteria['event_date'] = today + timedelta(days=1)
+            elif filter_date_from_To == '3days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=3))
+            elif filter_date_from_To == '5days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=5))
+            elif filter_date_from_To == '7days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=7))
+
+        # Filter based on the criteria
+        filter_ops_table = OpsView.objects.filter(**filter_criteria)
+
+        # Serialize and return the filtered data
+        serializer = OpsViewSerializer(filter_ops_table, many=True)
+        return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+
 
 class SubscriptionTableView(APIView):
     permission_classes = [IsAuthenticated]
@@ -656,3 +696,31 @@ class EmailConfigView(APIView):
         else:
             return Response(return_response(1, 'Email Config not updated', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
         
+class OpsEditVendorView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        id = request.data.get('employee_id')
+        occasion = request.data.get('occasion')
+        EmailWhatsAppTable_data = EmailWhatsAppTable.objects.filter(employee_id=id,occasion=occasion)
+        email_whatsapp_table_serializer = EmailWhatsAppTableSerializer(EmailWhatsAppTable_data, many=True)
+        food_and_gift = CakeAndGift.objects.filter(employee_id=id,occasion=occasion)
+        serializer = CakeAndGiftSerializer(food_and_gift, many=True)
+        return_data = {
+            "email_whatsapp_table": email_whatsapp_table_serializer.data,
+            "cake_and_gift": serializer.data
+        }
+        return Response(return_response(2, 'Cake and Gift found', return_data), status=status.HTTP_200_OK)
+
+class CakeandGiftUpdateView(APIView):
+    def patch(self, request):
+        try:
+            cake_and_gift = CakeAndGift.objects.get(order_id=request.data.get('cake_id'))
+        except CakeAndGift.DoesNotExist:
+            return Response(return_response(1, "CakeAndGift not found"), status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = CakeAndGiftSerializer(cake_and_gift, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, "Updated successfully"), status=status.HTTP_200_OK)
+        return Response(return_response(1, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
