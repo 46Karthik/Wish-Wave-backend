@@ -3,16 +3,17 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule,CakeAndGift,EmailWhatsAppTable
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer,CakeAndGiftSerializer,EmailWhatsAppTableSerializer
+from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule,EmailWhatsAppTable,CakeAndGift
+from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer,EmailWhatsAppTableSerializer,CakeAndGiftSerializer
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
-from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken
 import base64
 from io import BytesIO
 import pandas as pd
+from datetime import datetime, timedelta
+import xlsxwriter
 
 
 
@@ -227,9 +228,91 @@ class EmployeeCreateView(APIView):
         except Employees.DoesNotExist:
             return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
-class EmployeeBulkUploadView(APIView):
-    permission_classes = [IsAuthenticated]
+# class EmployeeBulkUploadView(APIView):
+#     permission_classes = [IsAuthenticated]
 
+#     def post(self, request):
+#         # Expecting the Base64 data in the request body
+#         base64_data = request.data.get('file')
+#         payload = Decode_JWt(request.headers.get('Authorization'))
+#         request.data['company_id'] = payload['company_id']
+
+#         if not base64_data:
+#             return Response({"error": "No Base64 data provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Split the Base64 data to get the actual Base64 string
+#         # print(base64_data)
+#         try:
+#             header, encoded = base64_data.split(',')
+#             decoded = base64.b64decode(encoded)
+#         except Exception as e:
+#             return Response({"error": f"Error decoding Base64 data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Read the Excel file from the decoded data
+#         try:
+#             data_frame = pd.read_excel(BytesIO(decoded))
+#         except Exception as e:
+#             return Response({"error": f"Error reading Excel data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         employees_created = []
+
+#         for index, row in data_frame.iterrows():
+#             spouse_data = {
+#                 'spouse_name': row.get('Spouse name'),
+#                 'spouse_dob': row.get('Spouse DOB'),
+#                 'spouse_email': row.get('Spouse Email'),
+#                 'spouse_phone': row.get('Spouse Phone Number'),
+#             }
+
+#             children_data = []
+#             if pd.notna(row.get('Kid1 Name')):
+#                 children_data.append({
+#                     'child_name': row.get('Kid1 Name'),
+#                     'child_gender': row.get('Kid 1 Gender'),
+#                     'child_dob': row.get('Kid1 DOB'),
+#                 })
+#             if pd.notna(row.get('Kid 2 name')):
+#                 children_data.append({
+#                     'child_name': row.get('Kid 2 name'),
+#                     'child_gender': row.get('Kid 2 Gender'),
+#                     'child_dob': row.get('Kid 2 DOB'),
+#                 })
+#             if pd.notna(row.get('Kid 3 Name')):
+#                 children_data.append({
+#                     'child_name': row.get('Kid 3 Name'),
+#                     'child_gender': row.get('Kid 3 Gender'),
+#                     'child_dob': row.get('Kid 3 DOB'),
+#                 })
+
+#             employee_data = {
+#                 'company_id': payload['company_id'],
+#                 'employee_name': row.get('Name'),
+#                 'employee_dept': row.get('EmployeeLevel'),
+#                 'employee_phone': row.get('Phone Number with country code'),
+#                 'whatsapp_phone_number': row.get('Whatsapp Phone number'),
+#                 'employee_doj': row.get('Date of Joining (DOJ)'),
+#                 'employee_dob': row.get('Date of Birth (DOB)'),
+#                 'employee_email': row.get('Email'),
+#                 'anniversary_date': row.get('Anniversary date'),
+#                 'address': row.get('addrees'),
+#                 'state': row.get('state'),
+#                 'pincode': row.get('pincode'),
+#                 'country': row.get('contry'),
+#                 'gender': 'Male' if row.get('Kid 1 Gender') == 'Male' else 'Female',  # Adjust based on your requirements
+#                 'marital_status': 'Married' if pd.notna(row.get('Spouse name')) else 'Single',  # Set based on spouse information
+#                 'spouse': spouse_data,
+#                 'children': children_data,
+#             }
+
+#             serializer = EmployeeSerializer(data=employee_data)
+#             if serializer.is_valid():
+#                 employee = serializer.save()
+#                 employees_created.append(employee)
+#             else:
+#                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#         return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
+class EmployeeBulkUploadView(APIView):
     def post(self, request):
         # Expecting the Base64 data in the request body
         base64_data = request.data.get('file')
@@ -239,23 +322,42 @@ class EmployeeBulkUploadView(APIView):
         if not base64_data:
             return Response({"error": "No Base64 data provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Split the Base64 data to get the actual Base64 string
-        # print(base64_data)
         try:
             header, encoded = base64_data.split(',')
             decoded = base64.b64decode(encoded)
         except Exception as e:
             return Response({"error": f"Error decoding Base64 data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Read the Excel file from the decoded data
         try:
             data_frame = pd.read_excel(BytesIO(decoded))
         except Exception as e:
             return Response({"error": f"Error reading Excel data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
         employees_created = []
-
+        errors = []
+        company = Company.objects.get(company_id=payload['company_id'])
         for index, row in data_frame.iterrows():
+            employee_email = row.get('Email')
+            employee_level = row.get('EmployeeLevel')
+            print(index + 1,'---------row---------')
+            # Check for existing email in the database
+            if Employees.objects.filter(employee_email=employee_email).exists():
+                errors.append({
+                    "Row": index + 1,
+                    "Error": f"Employee with email {employee_email} already exists."
+                })
+                continue
+            # check emplyee level based on the company
+            employee_levels_list = [level.strip() for level in company.employeeLevels.split(",")]
+            if company.varied and employee_level not in employee_levels_list:
+                errors.append({
+                    "Row": index + 1,
+                    "Error": f"Employee level {employee_level} is not allowed for this company."
+                })
+                continue
+                
+            
+
             spouse_data = {
                 'spouse_name': row.get('Spouse name'),
                 'spouse_dob': row.get('Spouse DOB'),
@@ -286,19 +388,19 @@ class EmployeeBulkUploadView(APIView):
             employee_data = {
                 'company_id': payload['company_id'],
                 'employee_name': row.get('Name'),
+                'employee_dept': row.get('EmployeeLevel'),
                 'employee_phone': row.get('Phone Number with country code'),
                 'whatsapp_phone_number': row.get('Whatsapp Phone number'),
                 'employee_doj': row.get('Date of Joining (DOJ)'),
                 'employee_dob': row.get('Date of Birth (DOB)'),
-                'employee_dept': row.get('Department'),
-                'employee_email': row.get('Email'),
+                'employee_email': employee_email,
                 'anniversary_date': row.get('Anniversary date'),
                 'address': row.get('addrees'),
                 'state': row.get('state'),
                 'pincode': row.get('pincode'),
                 'country': row.get('contry'),
-                'gender': 'Male' if row.get('Kid 1 Gender') == 'Male' else 'Female',  # Adjust based on your requirements
-                'marital_status': 'Married' if pd.notna(row.get('Spouse name')) else 'Single',  # Set based on spouse information
+                'gender': 'Male' if row.get('Kid 1 Gender') == 'Male' else 'Female',
+                'marital_status': 'Married' if pd.notna(row.get('Spouse name')) else 'Single',
                 'spouse': spouse_data,
                 'children': children_data,
             }
@@ -308,39 +410,57 @@ class EmployeeBulkUploadView(APIView):
                 employee = serializer.save()
                 employees_created.append(employee)
             else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                errors.append({
+                    "Row": index + 1,
+                    "Error": serializer.errors
+                })
 
-        return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
+        # Generate error file if there are errors
+        if errors:
+            error_df = pd.DataFrame(errors)
+            error_buffer = BytesIO()
+            with pd.ExcelWriter(error_buffer, engine='xlsxwriter') as writer:
+                error_df.to_excel(writer, index=False, sheet_name='Errors')
 
-# class SubscriptionEmployeedata(APIView):
-#     permission_classes = [IsAuthenticated]
-#     def get(self, request):
-#         payload = Decode_JWt(request.headers.get('Authorization'))
-#       # Get the employee IDs for the specified company
-#         employee_ids = Employees.objects.filter(company_id=payload['company_id']).values_list('employee_id', flat=True)
+            error_base64 = base64.b64encode(error_buffer.getvalue()).decode('utf-8')
+            return Response({
+                "message": f"{len(employees_created)} employees created successfully.",
+                "error_file": f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{error_base64}"
+            }, status=status.HTTP_201_CREATED)
 
-#         # Count the spouses associated with these employees
-#         spouse_count = Spouse.objects.filter(employee_id__in=employee_ids).count()
+        return Response({
+            "message": f"{len(employees_created)} employees created successfully."
+        }, status=status.HTTP_201_CREATED)
 
-#         # Count the children associated with these employees
-#         child_count = Child.objects.filter(employee_id__in=employee_ids).count()
+class SubscriptionEmployeedata(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        payload = Decode_JWt(request.headers.get('Authorization'))
+      # Get the employee IDs for the specified company
+        employee_ids = Employees.objects.filter(company_id=payload['company_id']).values_list('employee_id', flat=True)
 
-#         # Get the employee count
-#         employee_count = employee_ids.count()
+        # Count the spouses associated with these employees
+        spouse_count = Spouse.objects.filter(employee_id__in=employee_ids).count()
+
+        # Count the children associated with these employees
+        child_count = Child.objects.filter(employee_id__in=employee_ids).count()
+
+        # Get the employee count
+        employee_count = employee_ids.count()
         
-#         # user name as subscription table last updated by
-#         user_id = Subscription.objects.filter(company_id=payload['company_id'])
-#         username = UserProfile.objects.get(id=user_id.last().user_id).username
-#         # Prepare the data dictionary
-#         listdata = {
-#             'employee_count': employee_count,
-#             'spouse_count': spouse_count,
-#             'child_count': child_count,
-#             'username': username,
-#             'last_updated_by': user_id.last().user_id,
-#         }
+        # user name as subscription table last updated by
+        user_id = Subscription.objects.filter(company_id=payload['company_id'])
+        username = UserProfile.objects.get(id=user_id.last().user_id).username
+        # Prepare the data dictionary
+        listdata = {
+            'employee_count': employee_count,
+            'spouse_count': spouse_count,
+            'child_count': child_count,
+            'username': username,
+            'last_updated_by': user_id.last().user_id,
+        }
     
-#         return Response(return_response(2, 'List of employee count', listdata), status=status.HTTP_200_OK)
+        return Response(return_response(2, 'List of employee count', listdata), status=status.HTTP_200_OK)
 class VendorView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = VendorSerializer
@@ -530,9 +650,49 @@ class OpsTableView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
-        all_ops_table = OpsView.objects.all().order_by('-ops_id')
+        all_ops_table = OpsView.objects.all()
         serializer = OpsViewSerializer(all_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+    def post(self, request):
+        # Extract filter values from the request
+        company_name = request.data.get('company_name')
+        occasion = request.data.get('occasion')
+        relation = request.data.get('relation')
+        event_date = request.data.get('event_date')
+        filter_date_from_To = request.data.get('filter_date_from_To')
+
+        # Build filter criteria dynamically
+        filter_criteria = {}
+        if company_name:
+            filter_criteria['company_name'] = company_name
+        if occasion:
+            filter_criteria['occasion'] = occasion
+        if relation:
+            filter_criteria['relation'] = relation
+        if event_date:
+            filter_criteria['event_date'] = event_date
+
+        # Handle `filter_date_from_To`
+        if filter_date_from_To:
+            today = datetime.now().date()
+            if filter_date_from_To == 'today':
+                filter_criteria['event_date'] = today
+            elif filter_date_from_To == 'tomorrow':
+                filter_criteria['event_date'] = today + timedelta(days=1)
+            elif filter_date_from_To == '3days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=3))
+            elif filter_date_from_To == '5days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=5))
+            elif filter_date_from_To == '7days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=7))
+
+        # Filter based on the criteria
+        filter_ops_table = OpsView.objects.filter(**filter_criteria)
+
+        # Serialize and return the filtered data
+        serializer = OpsViewSerializer(filter_ops_table, many=True)
+        return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
+
 
 class SubscriptionTableView(APIView):
     permission_classes = [IsAuthenticated]
@@ -616,7 +776,7 @@ class ProductView(APIView):
 class ScheduleView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        schedule = Schedule.objects.all().order_by('-schedule_id')
+        schedule = Schedule.objects.all()
         serializer = ScheduleSerializer(schedule, many=True)
         return Response(return_response(2, 'Schedule details found', serializer.data), status=status.HTTP_200_OK)
 
@@ -633,13 +793,6 @@ class EmailConfigView(APIView):
             email_config = EmailConfig.objects.filter(company_id=payload['company_id'])
             serializer = EmailConfigSerializer(email_config, many=True)
             return Response(return_response(2, 'Email Config found', serializer.data), status=status.HTTP_200_OK)
-    # def post(self, request):
-    #     # test mail send
-    #     payload = Decode_JWt(request.headers.get('Authorization'))
-    #     company = EmailConfig.objects.filter(company_id=payload['company_id'])
-    #     if company.count() == 0:
-
-
 
     def post(self, request):
         payload = Decode_JWt(request.headers.get('Authorization'))
@@ -678,3 +831,17 @@ class OpsEditVendorView(APIView):
             "cake_and_gift": serializer.data
         }
         return Response(return_response(2, 'Cake and Gift found', return_data), status=status.HTTP_200_OK)
+
+class CakeandGiftUpdateView(APIView):
+    def patch(self, request):
+        try:
+            cake_and_gift = CakeAndGift.objects.get(order_id=request.data.get('cake_id'))
+        except CakeAndGift.DoesNotExist:
+            return Response(return_response(1, "CakeAndGift not found"), status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = CakeAndGiftSerializer(cake_and_gift, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(return_response(2, "Updated successfully"), status=status.HTTP_200_OK)
+        return Response(return_response(1, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+

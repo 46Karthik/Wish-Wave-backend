@@ -253,6 +253,8 @@ class EmailWhatsAppTable(models.Model):
     employee_id = models.CharField(max_length=100)
     company_id = models.CharField(max_length=100)
     email_id = models.EmailField(max_length=255)
+    occasion = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
     phone_number = models.CharField(max_length=20,blank=True, null=True)
     email_image_link = models.URLField(max_length=500,blank=True, null=True)
     whatsapp_image_link = models.URLField(max_length=500,blank=True, null=True)
@@ -273,18 +275,20 @@ class CakeAndGift(models.Model):
     employee_id = models.IntegerField()
     company_id = models.IntegerField()
     email_id = models.EmailField()
+    occasion = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=15)
     delivery_address1 = models.CharField(max_length=255)
     delivery_address2 = models.CharField(max_length=255, blank=True, null=True)
     delivery_city = models.CharField(max_length=100)
     delivery_zip = models.CharField(max_length=10)
+    
 
     # Cake Delivery Information
     cake_scheduled_delivery_date = models.DateField(blank=True, null=True)
     cake_scheduled_order_date = models.DateField(blank=True, null=True)
     cake_vendor_id = models.IntegerField(blank=True, null=True)
     cake_shop_name = models.CharField(max_length=100)
-
+    created_at = models.DateTimeField(auto_now_add=True)
     cake_from_address = models.CharField(max_length=255)
     cake_from_city = models.CharField(max_length=100)
     cake_from_state = models.CharField(max_length=100)
@@ -297,6 +301,7 @@ class CakeAndGift(models.Model):
     cake_delivery_person_number = models.CharField(max_length=15,blank=True, null=True)
     cake_delivery_verification_link = models.URLField(blank=True, null=True)
     cake_otp = models.CharField(max_length=6,blank=True, null=True)
+    food_id = models.CharField(blank=True, max_length=100, null=True)
 
 
     # Gift Delivery Information
@@ -316,6 +321,7 @@ class CakeAndGift(models.Model):
     gift_delivery_person_number = models.CharField(max_length=15,blank=True, null=True)
     gift_delivery_verification_link = models.URLField(blank=True, null=True)
     gift_otp = models.CharField(max_length=6,blank=True, null=True)
+    gift_id = models.CharField(blank=True, max_length=100, null=True)
 
     def __str__(self):
         return f"Delivery for Employee ID: {self.employee_id} (Company ID: {self.company_id})"
