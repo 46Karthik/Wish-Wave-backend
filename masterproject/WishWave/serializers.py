@@ -126,6 +126,30 @@ class EmployeeSerializer(serializers.ModelSerializer):
             Child.objects.create(employee=employee, **child_data)
 
         return employee
+    def update(self, instance, validated_data):
+        # Extract nested data for spouse and children
+        spouse_data = validated_data.pop('spouse', None)
+        children_data = validated_data.pop('children', None)
+
+        # Update Employee fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Update or create Spouse
+        if spouse_data:
+            spouse_instance, _ = Spouse.objects.get_or_create(employee=instance)
+            for attr, value in spouse_data.items():
+                setattr(spouse_instance, attr, value)
+            spouse_instance.save()
+
+        # Update Children: delete old ones and recreate
+        if children_data is not None:
+            instance.child_set.all().delete()  # Clear existing children
+            for child_data in children_data:
+                Child.objects.create(employee=instance, **child_data)
+
+        return instance
 
 class VendorSerializer(serializers.ModelSerializer):
     class Meta:
