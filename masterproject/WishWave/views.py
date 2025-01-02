@@ -14,6 +14,12 @@ from io import BytesIO
 import pandas as pd
 from datetime import datetime, timedelta
 import xlsxwriter
+import execjs
+import requests
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import strip_tags
+
+
 
 #         # permission_classes = [IsAuthenticated]
 #         # permission_classes = [AllowAny]
@@ -108,34 +114,88 @@ class RegisterCompany(APIView):
         else:
             return Response(return_response(1, 'Unauthorized'), status=status.HTTP_401_UNAUTHORIZED)
 class send_mail_otp(APIView):
- def post(self, request):
+    def post(self, request):
         email = request.data.get('email') 
         if not email:
             return Response(return_response(1, 'Email is required'), status=status.HTTP_200_OK)
+
         new_otp = generate_numeric_otp()
-        print("new_otp",new_otp)
+        print("new_otp", new_otp)
+
         if not UserProfile.objects.filter(email_id=email).exists():
             return Response(return_response(1, 'User mail Id not found'), status=status.HTTP_200_OK)
-        if Company.objects.filter(contact_email=email,active=False).exists():
-            return Response(return_response(1, 'Company not Active please contact admin'), status=status.HTTP_200_OK)
-        
+
+        if Company.objects.filter(contact_email=email, active=False).exists():
+            return Response(return_response(1, 'Company not Active, please contact admin'), status=status.HTTP_200_OK)
+
         user_profile = UserProfile.objects.get(email_id=email)
-        
         user_profile.otp = new_otp   
         user_profile.otp_generated_time = timezone.now()   
         user_profile.is_verified = False   
         user_profile.save()
         
         subject = "Your OTP Code"
-        message = f'Your OTP code is {new_otp}. It will expire in 2 minutes.'
-        from_email = 'karthikfoul66@gamil.com' 
+        from_email = 'karthikfoul66@gmail.com'  # Ensure this is correctly set up
         recipient_list = [email]
 
+        # HTML email template
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+            <div style="text-align: center; padding: 10px; background-color: #1474fc; color: white; border-radius: 8px 8px 0 0;">
+                <h2>Your OTP Code</h2>
+            </div>
+            <div style="padding: 20px; text-align: center;">
+                <p>Hello,</p>
+                <p>Your One-Time Password (OTP) for account verification is:</p>
+                <p style="font-size: 24px; font-weight: bold; color: #1474fc; background-color: #f0f8ff; padding: 10px; border-radius: 4px; display: inline-block;">{new_otp}</p>
+                <p>This OTP is valid for <strong>2 minutes</strong>. Please do not share this code with anyone.</p>
+                <p>If you didn't request this code, please ignore this email.</p>
+                <p>Thank you for using our service!</p>
+            </div>
+            <div style="text-align: center; padding: 10px; background-color: #f1f1f1; border-radius: 0 0 8px 8px; color: #666;">
+                &copy; 2024 WishWave. All rights reserved.
+            </div>
+        </div>
+        """
+        plain_text_message = strip_tags(html_content)
+
+        # Send email
         try:
-            send_mail(subject, message, from_email, recipient_list)
+            email_message = EmailMultiAlternatives(subject, plain_text_message, from_email, recipient_list)
+            email_message.attach_alternative(html_content, "text/html")
+            email_message.send()
+
             return Response(return_response(2, 'OTP sent successfully!'), status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Failed to send email', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#  def post(self, request):
+#         email = request.data.get('email') 
+#         if not email:
+#             return Response(return_response(1, 'Email is required'), status=status.HTTP_200_OK)
+#         new_otp = generate_numeric_otp()
+#         print("new_otp",new_otp)
+#         if not UserProfile.objects.filter(email_id=email).exists():
+#             return Response(return_response(1, 'User mail Id not found'), status=status.HTTP_200_OK)
+#         if Company.objects.filter(contact_email=email,active=False).exists():
+#             return Response(return_response(1, 'Company not Active please contact admin'), status=status.HTTP_200_OK)
+        
+#         user_profile = UserProfile.objects.get(email_id=email)
+        
+#         user_profile.otp = new_otp   
+#         user_profile.otp_generated_time = timezone.now()   
+#         user_profile.is_verified = False   
+#         user_profile.save()
+        
+#         subject = "Your OTP Code"
+#         message = f'Your OTP code is {new_otp}. It will expire in 2 minutes.'
+#         from_email = 'karthikfoul66@gamil.com' 
+#         recipient_list = [email]
+
+#         try:
+#             send_mail(subject, message, from_email, recipient_list)
+#             return Response(return_response(2, 'OTP sent successfully!'), status=status.HTTP_200_OK)
+#         except Exception as e:
+#             return Response({'error': 'Failed to send email', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 class verify_otp(APIView):
  def post(self, request):
         email = request.data.get('email')  
@@ -974,4 +1034,3 @@ class CakeandGiftUpdateView(APIView):
             serializer.save()
             return Response(return_response(2, "Updated successfully"), status=status.HTTP_200_OK)
         return Response(return_response(1, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
-
