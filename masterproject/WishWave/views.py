@@ -14,8 +14,6 @@ from io import BytesIO
 import pandas as pd
 from datetime import datetime, timedelta
 import xlsxwriter
-import execjs
-import requests
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 
