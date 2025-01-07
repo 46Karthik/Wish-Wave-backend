@@ -110,19 +110,30 @@ WSGI_APPLICATION = 'masterproject.wsgi.application'
 # }
 
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'wishwave',  # Replace with your actual database name
+#         'USER': 'root',  # Database user
+#         'PASSWORD': 'xXwVHMuVXDPrhyFCnQIhyTMGJRAOGZuK',  # Database password
+#         'HOST': 'autorack.proxy.rlwy.net',  # Host
+#         'PORT': '20364',  # Port number
+#         'OPTIONS': {
+#             'ssl': {
+#                 'ssl-mode': 'REQUIRED'
+#             }
+#         },
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'wishwave',  # Replace with your actual database name
-        'USER': 'root',  # Database user
-        'PASSWORD': 'xXwVHMuVXDPrhyFCnQIhyTMGJRAOGZuK',  # Database password
-        'HOST': 'autorack.proxy.rlwy.net',  # Host
-        'PORT': '20364',  # Port number
-        'OPTIONS': {
-            'ssl': {
-                'ssl-mode': 'REQUIRED'
-            }
-        },
+        'NAME': 'wishwave',
+        'USER': 'root',
+        'PASSWORD': 'Dxsoprop@123',
+        'HOST': '147.93.31.100',  # Use the IP address of your MySQL server
+        'PORT': '3306',  # Default MySQL port
     }
 }
 

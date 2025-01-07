@@ -426,7 +426,7 @@ class EmployeeBulkUploadView(APIView):
                 serializer = EmployeeSerializer(data=employee)
                 if serializer.is_valid():
                     saved_employees_count += 1
-                    employee = serializer.save()
+                    # employee = serializer.save()
             
             return Response({
                 "message": f"{saved_employees_count} employees created successfully."
