@@ -283,93 +283,20 @@ class EmployeeCreateView(APIView):
         except Employees.DoesNotExist:
             return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
-# class EmployeeBulkUploadView(APIView):
-#     permission_classes = [IsAuthenticated]
+def convert_date_format(date_value):
+    """
+    Convert a date value (Excel date format) to 'YYYY-MM-DD'.
+    If the input is NaT or invalid, return None.
+    """
+    try:
+        # Convert to pandas datetime, then to the desired string format
+        return pd.to_datetime(date_value).strftime('%Y-%m-%d')
+    except (ValueError, TypeError):
+        return None
 
-#     def post(self, request):
-#         # Expecting the Base64 data in the request body
-#         base64_data = request.data.get('file')
-#         payload = Decode_JWt(request.headers.get('Authorization'))
-#         request.data['company_id'] = payload['company_id']
-
-#         if not base64_data:
-#             return Response({"error": "No Base64 data provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Split the Base64 data to get the actual Base64 string
-#         # print(base64_data)
-#         try:
-#             header, encoded = base64_data.split(',')
-#             decoded = base64.b64decode(encoded)
-#         except Exception as e:
-#             return Response({"error": f"Error decoding Base64 data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Read the Excel file from the decoded data
-#         try:
-#             data_frame = pd.read_excel(BytesIO(decoded))
-#         except Exception as e:
-#             return Response({"error": f"Error reading Excel data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         employees_created = []
-
-#         for index, row in data_frame.iterrows():
-#             spouse_data = {
-#                 'spouse_name': row.get('Spouse name'),
-#                 'spouse_dob': row.get('Spouse DOB'),
-#                 'spouse_email': row.get('Spouse Email'),
-#                 'spouse_phone': row.get('Spouse Phone Number'),
-#             }
-
-#             children_data = []
-#             if pd.notna(row.get('Kid1 Name')):
-#                 children_data.append({
-#                     'child_name': row.get('Kid1 Name'),
-#                     'child_gender': row.get('Kid 1 Gender'),
-#                     'child_dob': row.get('Kid1 DOB'),
-#                 })
-#             if pd.notna(row.get('Kid 2 name')):
-#                 children_data.append({
-#                     'child_name': row.get('Kid 2 name'),
-#                     'child_gender': row.get('Kid 2 Gender'),
-#                     'child_dob': row.get('Kid 2 DOB'),
-#                 })
-#             if pd.notna(row.get('Kid 3 Name')):
-#                 children_data.append({
-#                     'child_name': row.get('Kid 3 Name'),
-#                     'child_gender': row.get('Kid 3 Gender'),
-#                     'child_dob': row.get('Kid 3 DOB'),
-#                 })
-
-#             employee_data = {
-#                 'company_id': payload['company_id'],
-#                 'employee_name': row.get('Name'),
-#                 'employee_dept': row.get('EmployeeLevel'),
-#                 'employee_phone': row.get('Phone Number with country code'),
-#                 'whatsapp_phone_number': row.get('Whatsapp Phone number'),
-#                 'employee_doj': row.get('Date of Joining (DOJ)'),
-#                 'employee_dob': row.get('Date of Birth (DOB)'),
-#                 'employee_email': row.get('Email'),
-#                 'anniversary_date': row.get('Anniversary date'),
-#                 'address': row.get('addrees'),
-#                 'state': row.get('state'),
-#                 'pincode': row.get('pincode'),
-#                 'country': row.get('contry'),
-#                 'gender': 'Male' if row.get('Kid 1 Gender') == 'Male' else 'Female',  # Adjust based on your requirements
-#                 'marital_status': 'Married' if pd.notna(row.get('Spouse name')) else 'Single',  # Set based on spouse information
-#                 'spouse': spouse_data,
-#                 'children': children_data,
-#             }
-
-#             serializer = EmployeeSerializer(data=employee_data)
-#             if serializer.is_valid():
-#                 employee = serializer.save()
-#                 employees_created.append(employee)
-#             else:
-#                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#         return Response({"message": f"{len(employees_created)} employees created successfully"}, status=status.HTTP_201_CREATED)
 class EmployeeBulkUploadView(APIView):
     def post(self, request):
-        # Extract Base64 data and company_id
+        # Extract Base64 data and company_id from the JWT
         base64_data = request.data.get('file')
         payload = Decode_JWt(request.headers.get('Authorization'))
         request.data['company_id'] = payload['company_id']
@@ -384,16 +311,24 @@ class EmployeeBulkUploadView(APIView):
         except Exception as e:
             return Response({"error": f"Error decoding Base64 data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Read Excel file
+        # Read Excel file with proper engine handling
         try:
-            data_frame = pd.read_excel(BytesIO(decoded))
-        except Exception as e:
+            # Default to .xlsx (openpyxl)
+            data_frame = pd.read_excel(BytesIO(decoded), engine='openpyxl')
+        except ValueError as e:
             return Response({"error": f"Error reading Excel data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except ImportError as e:
+            return Response({
+                "error": "Missing dependency. Install 'openpyxl' for .xlsx or 'xlrd==2.0.1' for .xls support."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Unexpected error reading Excel data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
         employees_created = []
         errors = []
         company = Company.objects.get(company_id=payload['company_id'])
-
+        saved_employees_count = 0
+        # Process each row in the data frame
         for index, row in data_frame.iterrows():
             employee_email = row.get('Email')
             employee_level = row.get('EmployeeLevel')
@@ -419,44 +354,34 @@ class EmployeeBulkUploadView(APIView):
             spouse_data = None
             if pd.notna(row.get('Spouse frist name')):
                 spouse_data = {
-                    'spouse_name': row.get('Spouse frist name')+" "+row.get('Spouse last name') ,
-                    'spouse_dob': row.get('Spouse DOB'),
+                    'spouse_name': row.get('Spouse frist name') + " " + row.get('Spouse last name'),
+                    'spouse_dob': convert_date_format(row.get('Spouse DOB')),
                     'spouse_email': row.get('Spouse Email'),
                     'spouse_phone': row.get('Spouse Phone Number'),
                 }
 
             # Prepare children data conditionally
             children_data = []
-            if pd.notna(row.get('Kid1 Name')):
-                children_data.append({
-                    'child_name': row.get('Kid1 Name'),
-                    'child_gender': row.get('Kid 1 Gender'),
-                    'child_dob': row.get('Kid1 DOB'),
-                })
-            if pd.notna(row.get('Kid 2 name')):
-                children_data.append({
-                    'child_name': row.get('Kid 2 name'),
-                    'child_gender': row.get('Kid 2 Gender'),
-                    'child_dob': row.get('Kid 2 DOB'),
-                })
-            if pd.notna(row.get('Kid 3 Name')):
-                children_data.append({
-                    'child_name': row.get('Kid 3 Name'),
-                    'child_gender': row.get('Kid 3 Gender'),
-                    'child_dob': row.get('Kid 3 DOB'),
-                })
-
+            for i in range(1, 4):  # Handles Kid1, Kid2, Kid3
+                if pd.notna(row.get(f'Kid{i} Name')):
+                    children_data.append({
+                        'child_name': row.get(f'Kid{i} Name'),
+                        'child_gender': row.get(f'Kid {i} Gender'),
+                        'child_dob': convert_date_format(row.get(f'Kid{i} DOB')),
+                    })
+            employee_dob = convert_date_format(row.get('Date of Birth (DOB)'))
+            # print(employee_dob, 'employee_dob')
             # Prepare employee data
             employee_data = {
                 'company_id': payload['company_id'],
-                'employee_name': row.get('Employee Frist Name') + " " + row.get('Employee last Name'),
+                'employee_name': f"{row.get('Employee First Name')} {row.get('Employee last Name')}",
                 'employee_dept': row.get('EmployeeLevel'),
                 'employee_phone': row.get('Phone Number with country code'),
                 'whatsapp_phone_number': row.get('Whatsapp Phone number'),
-                'employee_doj': row.get('Date of Joining (DOJ)'),
-                'employee_dob': row.get('Date of Birth (DOB)'),
+                'employee_doj': convert_date_format(row.get('Date of Joining (DOJ)')),
+                'employee_dob':convert_date_format(row.get('Date of Birth (DOB)')),
                 'employee_email': employee_email,
-                'anniversary_date': row.get('Anniversary date'),
+                'anniversary_date': convert_date_format (row.get('Anniversary date')),
                 'address': row.get('addrees'),
                 'state': row.get('state'),
                 'pincode': row.get('pincode'),
@@ -467,159 +392,45 @@ class EmployeeBulkUploadView(APIView):
                 'city': row.get('city'),
             }
 
+            print (employee_data.get('employee_name'), 'employee_data')
             # Conditionally include spouse and children data
             if spouse_data:
                 employee_data['spouse'] = spouse_data
             if children_data:
                 employee_data['children'] = children_data
-
+            
             # Serialize and save data
             serializer = EmployeeSerializer(data=employee_data)
             if serializer.is_valid():
-                employee = serializer.save()
-                employees_created.append(employee)
+                employees_created.append(employee_data)
             else:
                 errors.append({
                     "Row": index + 1,
                     "Error": serializer.errors
                 })
 
-        # Generate error file if there are errors
         if errors:
-            error_df = pd.DataFrame(errors)
-            error_buffer = BytesIO()
-            with pd.ExcelWriter(error_buffer, engine='xlsxwriter') as writer:
-                error_df.to_excel(writer, index=False, sheet_name='Errors')
+                error_df = pd.DataFrame(errors)
+                error_buffer = BytesIO()
+                with pd.ExcelWriter(error_buffer, engine='xlsxwriter') as writer:
+                    error_df.to_excel(writer, index=False, sheet_name='Errors')
 
-            error_base64 = base64.b64encode(error_buffer.getvalue()).decode('utf-8')
-            return Response({
-                "message": f"{len(employees_created)} employees created successfully.",
-                "error_file": f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{error_base64}"
-            }, status=status.HTTP_201_CREATED)
-
-        return Response({
-            "message": f"{len(employees_created)} employees created successfully."
-        }, status=status.HTTP_201_CREATED)
-
-# class EmployeeBulkUploadView(APIView):
-#     def post(self, request):
-#         # Expecting the Base64 data in the request body
-#         base64_data = request.data.get('file')
-#         payload = Decode_JWt(request.headers.get('Authorization'))
-#         request.data['company_id'] = payload['company_id']
-
-#         if not base64_data:
-#             return Response({"error": "No Base64 data provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             header, encoded = base64_data.split(',')
-#             decoded = base64.b64decode(encoded)
-#         except Exception as e:
-#             return Response({"error": f"Error decoding Base64 data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             data_frame = pd.read_excel(BytesIO(decoded))
-#         except Exception as e:
-#             return Response({"error": f"Error reading Excel data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         employees_created = []
-#         errors = []
-#         company = Company.objects.get(company_id=payload['company_id'])
-#         for index, row in data_frame.iterrows():
-#             employee_email = row.get('Email')
-#             employee_level = row.get('EmployeeLevel')
-#             print(employee_level,'---------row---------')
-#             # Check for existing email in the database
-#             if Employees.objects.filter(employee_email=employee_email).exists():
-#                 errors.append({
-#                     "Row": index + 1,
-#                     "Error": f"Employee with email {employee_email} already exists."
-#                 })
-#                 continue
-#             # check emplyee level based on the company
-#             employee_levels_list = [level.strip() for level in company.employeeLevels.split(",")]
-#             if company.varied and employee_level not in employee_levels_list:
-#                 errors.append({
-#                     "Row": index + 1,
-#                     "Error": f"Employee level {employee_level} is not allowed for this company."
-#                 })
-#                 continue
-                
+                error_base64 = base64.b64encode(error_buffer.getvalue()).decode('utf-8')
+                return Response({
+                    "message": f"{saved_employees_count} employees created successfully.",
+                    "error_file": f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{error_base64}"
+                }, status=status.HTTP_201_CREATED)
+        else:
+            for employee in employees_created:
+                # save all employees
+                serializer = EmployeeSerializer(data=employee)
+                if serializer.is_valid():
+                    saved_employees_count += 1
+                    employee = serializer.save()
             
-
-#             spouse_data = {
-#                 'spouse_name': row.get('Spouse name'),
-#                 'spouse_dob': row.get('Spouse DOB'),
-#                 'spouse_email': row.get('Spouse Email'),
-#                 'spouse_phone': row.get('Spouse Phone Number'),
-#             }
-
-#             children_data = []
-#             if pd.notna(row.get('Kid1 Name')):
-#                 children_data.append({
-#                     'child_name': row.get('Kid1 Name'),
-#                     'child_gender': row.get('Kid 1 Gender'),
-#                     'child_dob': row.get('Kid1 DOB'),
-#                 })
-#             if pd.notna(row.get('Kid 2 name')):
-#                 children_data.append({
-#                     'child_name': row.get('Kid 2 name'),
-#                     'child_gender': row.get('Kid 2 Gender'),
-#                     'child_dob': row.get('Kid 2 DOB'),
-#                 })
-#             if pd.notna(row.get('Kid 3 Name')):
-#                 children_data.append({
-#                     'child_name': row.get('Kid 3 Name'),
-#                     'child_gender': row.get('Kid 3 Gender'),
-#                     'child_dob': row.get('Kid 3 DOB'),
-#                 })
-
-#             employee_data = {
-#                 'company_id': payload['company_id'],
-#                 'employee_name': row.get('Name'),
-#                 'employee_dept': row.get('EmployeeLevel'),
-#                 'employee_phone': row.get('Phone Number with country code'),
-#                 'whatsapp_phone_number': row.get('Whatsapp Phone number'),
-#                 'employee_doj': row.get('Date of Joining (DOJ)'),
-#                 'employee_dob': row.get('Date of Birth (DOB)'),
-#                 'employee_email': employee_email,
-#                 'anniversary_date': row.get('Anniversary date'),
-#                 'address': row.get('addrees'),
-#                 'state': row.get('state'),
-#                 'pincode': row.get('pincode'),
-#                 'country': row.get('contry'),
-#                 'gender': row.get('Gender'),
-#                 'marital_status': row.get('Marital'),
-#                 'spouse': spouse_data,
-#                 'children': children_data,
-#             }
-
-#             serializer = EmployeeSerializer(data=employee_data)
-#             if serializer.is_valid():
-#                 employee = serializer.save()
-#                 employees_created.append(employee)
-#             else:
-#                 errors.append({
-#                     "Row": index + 1,
-#                     "Error": serializer.errors
-#                 })
-
-#         # Generate error file if there are errors
-#         if errors:
-#             error_df = pd.DataFrame(errors)
-#             error_buffer = BytesIO()
-#             with pd.ExcelWriter(error_buffer, engine='xlsxwriter') as writer:
-#                 error_df.to_excel(writer, index=False, sheet_name='Errors')
-
-#             error_base64 = base64.b64encode(error_buffer.getvalue()).decode('utf-8')
-#             return Response({
-#                 "message": f"{len(employees_created)} employees created successfully.",
-#                 "error_file": f"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{error_base64}"
-#             }, status=status.HTTP_201_CREATED)
-
-#         return Response({
-#             "message": f"{len(employees_created)} employees created successfully."
-#         }, status=status.HTTP_201_CREATED)
+            return Response({
+                "message": f"{saved_employees_count} employees created successfully."
+            }, status=status.HTTP_201_CREATED)
 
 class SubscriptionEmployeedata(APIView):
     permission_classes = [IsAuthenticated]

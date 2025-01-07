@@ -95,36 +95,36 @@ WSGI_APPLICATION = 'masterproject.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'wishwave',
-        'USER': 'admin',
-        'PASSWORD': 'wishwave_123',
-        'HOST': 'wisewave.c3gk28geioqz.ap-south-1.rds.amazonaws.com',  # Or '127.0.0.1' for local setup
-        'PORT': '3306',       # Default MySQL port
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # Optional for strict mode
-        },
-    }
-}
-
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'railway',  # Replace with your actual database name
-#         'USER': 'root',  # Database user
-#         'PASSWORD': 'xXwVHMuVXDPrhyFCnQIhyTMGJRAOGZuK',  # Database password
-#         'HOST': 'autorack.proxy.rlwy.net',  # Host
-#         'PORT': '20364',  # Port number
+#         'NAME': 'wishwave',
+#         'USER': 'admin',
+#         'PASSWORD': 'wishwave_123',
+#         'HOST': 'wisewave.c3gk28geioqz.ap-south-1.rds.amazonaws.com',  # Or '127.0.0.1' for local setup
+#         'PORT': '3306',       # Default MySQL port
 #         'OPTIONS': {
-#             'ssl': {
-#                 'ssl-mode': 'REQUIRED'
-#             }
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # Optional for strict mode
 #         },
 #     }
 # }
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'wishwave',  # Replace with your actual database name
+        'USER': 'root',  # Database user
+        'PASSWORD': 'xXwVHMuVXDPrhyFCnQIhyTMGJRAOGZuK',  # Database password
+        'HOST': 'autorack.proxy.rlwy.net',  # Host
+        'PORT': '20364',  # Port number
+        'OPTIONS': {
+            'ssl': {
+                'ssl-mode': 'REQUIRED'
+            }
+        },
+    }
+}
 
 
 
