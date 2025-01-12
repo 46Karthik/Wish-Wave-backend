@@ -426,7 +426,7 @@ class EmployeeBulkUploadView(APIView):
                 serializer = EmployeeSerializer(data=employee)
                 if serializer.is_valid():
                     saved_employees_count += 1
-                    # employee = serializer.save()
+                    employee = serializer.save()
             
             return Response({
                 "message": f"{saved_employees_count} employees created successfully."
@@ -843,3 +843,15 @@ class CakeandGiftUpdateView(APIView):
             serializer.save()
             return Response(return_response(2, "Updated successfully"), status=status.HTTP_200_OK)
         return Response(return_response(1, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+
+class get_company_details(APIView):
+    def post (self, request):
+        id = request.data.get('id')
+        if id is None:
+            return Response(return_response(1, 'id is required'), status=status.HTTP_400_BAD_REQUEST)
+        try:
+            all_company = Company.objects.get(company_id=id)
+            serializer = CompanySerializer(all_company)
+            return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
+        except Company.DoesNotExist:
+            return Response(return_response(1, 'Company not found'), status=status.HTTP_404_NOT_FOUND)

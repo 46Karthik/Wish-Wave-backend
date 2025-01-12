@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-*idnav)m645u_!1$cg0_+ey=jmmr9kqmv0sazab4w4^qu=*w-a
 # ALLOWED_HOSTS = []
 # development
 DEBUG = True
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*','127.0.0.1']
 
 
 CORS_ALLOW_ALL_ORIGINS = True

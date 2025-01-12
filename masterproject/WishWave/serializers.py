@@ -234,7 +234,7 @@ class EmailWhatsAppTableSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailWhatsAppTable
         fields = [
-            'order_id', 'employee_id', 'company_id', 'email_id', 
+            'order_id', 'employee_id', 'company_id','occasion', 'email_id', 
             'phone_number', 'email_image_link', 'whatsapp_image_link', 
             'subscription_details', 'event_date', 'image_generation_timestamp', 
             'mail_schedule_time', 'whatsapp_schedule_time', 
@@ -245,7 +245,7 @@ class CakeAndGiftSerializer(serializers.ModelSerializer):
     class Meta:
         model = CakeAndGift
         fields = [
-            'order_id', 'employee_id', 'company_id', 'email_id', 'phone_number', 
+            'order_id', 'employee_id', 'company_id', 'email_id', 'phone_number','occasion', 
             'delivery_address1', 'delivery_address2', 'delivery_city', 'delivery_zip',
             
             # Cake Delivery Information

@@ -29,4 +29,5 @@ urlpatterns = [
     path('Schedule/',ScheduleView.as_view(), name='Schedule'),
     path ('ops-Edit-vendor/', OpsEditVendorView.as_view(), name='ops-Edit-vendor'),
     path('cake-and-gift/', CakeandGiftUpdateView.as_view(), name='cake-and-gift'),
+    path('get-company-deatils/', get_company_details.as_view(), name='get-company-deatils'),
 ]

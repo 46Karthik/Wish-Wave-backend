@@ -38,6 +38,7 @@ class Command(BaseCommand):
             # Filter employees dynamically based on provided filters
             employees = Employees.objects.filter(**filters)
             operation_status["count_of_person"] = employees.count()
+            print(employees.count(),"-------------")
 
             for employee in employees:
                 employee_status = {
@@ -81,7 +82,6 @@ class Command(BaseCommand):
                             employee_status["error"].append(f"Food Vendor not found for the provided pincode.Employee ID : {employee.employee_id} , Pincode : {employee.pincode}")
                         if gift_vendor_details is None:
                             employee_status["error"].append(f"Gift Vendor not found for the provided pincode.Employee ID :{employee.employee_id} ,Pincode : {employee.pincode} ")
-
                         # Construct the objects to be created
                         create_ops_table_object = {
                             "company_id": employee.company_id,
@@ -127,7 +127,6 @@ class Command(BaseCommand):
                             "mail_sent_time": None,
                             "whatsapp_sent_time": None
                         }
-
                         create_cake_and_gift = {
                                 "employee_id": employee.employee_id,
                                 "company_id": employee.company_id,
@@ -141,12 +140,12 @@ class Command(BaseCommand):
                                 "food_id": subscription.gift,
                                 "cake_scheduled_delivery_date": None,
                                 "cake_scheduled_order_date": None,
-                                "cake_vendor_id": subscription.custom_gift,
-                                "cake_shop_name": food_vendor_details.name_of_vendor,
-                                "cake_from_address": food_vendor_details.address_1,
-                                "cake_from_city": food_vendor_details.city,
-                                "cake_from_state": food_vendor_details.state,
-                                "cake_from_pincode": food_vendor_details.pin,
+                                "cake_vendor_id": getattr(food_vendor_details, 'id', None),
+                                "cake_shop_name": getattr(food_vendor_details, 'name_of_vendor', ""),
+                                "cake_from_address": getattr(food_vendor_details, 'address_1', ""),
+                                "cake_from_city": getattr(food_vendor_details, 'city', ""),
+                                "cake_from_state": getattr(food_vendor_details, 'state', ""),
+                                "cake_from_pincode": getattr(food_vendor_details, 'pin', ""),
                                 "cake_flavour": "",
                                 "cake_weight": None,
                                 "cake_wish_message": f"Happy {title}, {employee.employee_name}!",
@@ -157,12 +156,12 @@ class Command(BaseCommand):
                                 "gift_id": subscription.custom_gift,
                                 "gift_scheduled_delivery_date": None,
                                 "gift_scheduled_order_date": None,
-                                "gift_vendor_id": gift_vendor_details.id,
-                                "gift_shop_name": gift_vendor_details.name_of_vendor,
-                                "gift_from_address": gift_vendor_details.address_1,
-                                "gift_from_city": gift_vendor_details.city,
-                                "gift_from_state": gift_vendor_details.state,
-                                "gift_from_pincode": gift_vendor_details.pin,
+                                "gift_vendor_id": getattr(gift_vendor_details, 'id', None),
+                                "gift_shop_name": getattr(gift_vendor_details, 'name_of_vendor', ""),
+                                "gift_from_address": getattr(gift_vendor_details, 'address_1', ""),
+                                "gift_from_city": getattr(gift_vendor_details, 'city', ""),
+                                "gift_from_state": getattr(gift_vendor_details, 'state', ""),
+                                "gift_from_pincode": getattr(gift_vendor_details, 'pin', ""),
                                 "gift_article_number": "",
                                 "gift_weight": None,
                                 "gift_delivery_person_name": "",
@@ -170,6 +169,7 @@ class Command(BaseCommand):
                                 "gift_delivery_verification_link": "",
                                 "gift_otp": ""
                             }
+                        print("create_ops_table_object",create_ops_table_object)
 
                         Opsserializer = OpsViewSerializer(data=create_ops_table_object)
                         EmailWhatsAppSerializer = EmailWhatsAppTableSerializer(data=create_EmailWhatsAppTable)
@@ -273,6 +273,7 @@ class Command(BaseCommand):
                             create_EmailWhatsAppTable = {
                                 "employee_id": employee.employee_id,
                                 "company_id": employee.company_id,
+                                "occasion": title,
                                 "email_id": spouse.spouse_email,
                                 "phone_number": spouse.spouse_phone,
                                 "email_image_link": "",
@@ -390,6 +391,7 @@ class Command(BaseCommand):
                             create_EmailWhatsAppTable = {
                                 "employee_id": employee.employee_id,
                                 "company_id": employee.company_id,
+                                "occasion": title,
                                 "email_id": employee.employee_email,
                                 "phone_number": employee.whatsapp_phone_number,
                                 "email_image_link": "",
@@ -484,7 +486,7 @@ class Command(BaseCommand):
             "schedule_name": "7-Days-Schedule",
             "details": json.dumps(status)
         }
-       # Create a new record
+    #    Create a new record
         Schedule.objects.create(
             schedule_name=schedule_details["schedule_name"],
             details=schedule_details["details"]
