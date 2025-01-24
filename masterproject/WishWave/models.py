@@ -77,6 +77,9 @@ class Company(models.Model):
 
 class Employees(models.Model):
     employee_id = models.AutoField(primary_key=True)
+    employee_code = models.CharField(max_length=255, null=True, blank=True)
+    manager_name = models.CharField(max_length=100, null=True, blank=True)
+    manager_email = models.EmailField(max_length=100, null=True, blank=True)
     company_id = models.CharField(max_length=255, null=True, blank=True)
     employee_name = models.CharField(max_length=100)
     employee_dept = models.CharField(max_length=100)
@@ -382,3 +385,38 @@ class Schedule(models.Model):
 
     def __str__(self):
         return f"{self.schedule_name}"
+
+class Reward(models.Model):
+    # Recipient Details
+    reward_id = models.AutoField(primary_key=True)
+    company_id = models.IntegerField()
+    recipient_emp_id = models.IntegerField()
+    recipient_emp_code = models.CharField(max_length=255, null=True, blank=True)
+    recipient_emp_name = models.CharField(max_length=255, null=True, blank=True)
+    recipient_emp_phone = models.CharField(max_length=20, null=True, blank=True)
+    recipient_emp_email = models.EmailField(null=True, blank=True)
+    recipient_manager_name = models.CharField(max_length=255, null=True, blank=True)
+    recipient_manager_email = models.EmailField(null=True, blank=True)
+
+    # Submitter Details
+    submitter_emp_id = models.IntegerField()
+    submitter_emp_code = models.CharField(max_length=255, null=True, blank=True)
+    submitter_emp_name = models.CharField(max_length=255, null=True, blank=True)
+    submitter_emp_phone = models.CharField(max_length=20, null=True, blank=True)
+    submitter_emp_email = models.EmailField(null=True, blank=True)
+    submitter_manager_name = models.CharField(max_length=255, null=True, blank=True)
+    submitter_manager_email = models.EmailField(null=True, blank=True)
+
+    # Award Details
+    justification = models.TextField(null=True, blank=True)
+    core_value = models.CharField(max_length=255)
+    delivery = models.CharField(max_length=255)
+    impact = models.CharField(max_length=255)
+    points = models.PositiveIntegerField()
+
+    # Metadata
+    submitted_date = models.DateField(auto_now_add=True)
+    status = models.CharField(max_length=50, default="Pending", null=True, blank=True)
+
+    def __str__(self):
+        return f"Reward {self.reward_id} - {self.recipient_emp_name}"

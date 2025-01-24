@@ -89,6 +89,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = [
             'employee_id',
             'employee_name',
+            'employee_code',
+            'manager_name',
+            'manager_email',
             'company_id',
             'employee_dept', 
             'employee_email',
@@ -296,4 +299,8 @@ class EmailConfigSerializer(serializers.ModelSerializer):
 class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Schedule
+        fields = '__all__'
+class RewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reward
         fields = '__all__'

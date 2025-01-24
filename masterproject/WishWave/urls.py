@@ -30,4 +30,8 @@ urlpatterns = [
     path ('ops-Edit-vendor/', OpsEditVendorView.as_view(), name='ops-Edit-vendor'),
     path('cake-and-gift/', CakeandGiftUpdateView.as_view(), name='cake-and-gift'),
     path('get-company-deatils/', get_company_details.as_view(), name='get-company-deatils'),
+    path('rewards/', RewardsView.as_view(), name='rewards'),
+    path('reward-mail-action/', RewardsMailAction.as_view(), name='reward-mail-action'),
+    path('rewardlist/', RewardslistView.as_view(), name='rewardlist'),
+    path('genrate-image/', generate_image.as_view(), name='genrate-image'),
 ]

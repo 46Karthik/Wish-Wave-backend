@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Company, UserProfile,Employees,Spouse,Child,Vendor,TemplateImage,CompanyTemplateConfig,OpsView,Product,Subscription,EmailConfig,Schedule,EmailWhatsAppTable,CakeAndGift
-from .serializers import CompanySerializer, UserProfileSerializer,EmployeeSerializer,SpouseSerializer,ChildSerializer,VendorSerializer,TemplateImageSerializer,CompanyTemplateConfigSerializer,OpsViewSerializer,ProductSerializer,SubscriptionSerializer,EmailConfigSerializer,ScheduleSerializer,EmailWhatsAppTableSerializer,CakeAndGiftSerializer
+from .models import *
+from .serializers import *
 from django.core.mail import send_mail
 from masterproject.views import generate_numeric_otp,return_response,return_sql_results,Decode_JWt,upload_image_to_s3,upload_base64_image_to_s3,delete_image_from_s3
 from django.utils import timezone
@@ -16,6 +16,13 @@ from datetime import datetime, timedelta
 import xlsxwriter
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
+from PIL import Image, ImageDraw, ImageFont
+import requests
+import os
+
+
+
+
 
 
 
@@ -133,7 +140,7 @@ class send_mail_otp(APIView):
         user_profile.save()
         
         subject = "Your OTP Code"
-        from_email = 'karthikfoul66@gmail.com'  # Ensure this is correctly set up
+        from_email = 'karthikfoul66@gmail.com' 
         recipient_list = [email]
 
         # HTML email template
@@ -211,11 +218,15 @@ class verify_otp(APIView):
 
         user_profile.is_verified = True
         user_profile.save()
+        
+        company_details = Company.objects.filter(company_id=user_profile.company_id).first()
+        serializer = CompanySerializer(company_details)        
         # # Generate JWT token
         refresh = RefreshToken.for_user(user_profile.user)
         refresh['email'] = user_profile.user.email
         refresh['role_id'] = user_profile.role_id
         refresh['company_id'] = user_profile.company_id
+        refresh['company_name'] = serializer.data.get('company_name')
         refresh['login_id'] = user_profile.id
         refresh['username'] = user_profile.username
 
@@ -370,11 +381,14 @@ class EmployeeBulkUploadView(APIView):
                         'child_dob': convert_date_format(row.get(f'Kid{i} DOB')),
                     })
             employee_dob = convert_date_format(row.get('Date of Birth (DOB)'))
-            # print(employee_dob, 'employee_dob')
+            # print(employee_dob, 'Manager Email')
             # Prepare employee data
             employee_data = {
                 'company_id': payload['company_id'],
                 'employee_name': f"{row.get('Employee First Name')} {row.get('Employee last Name')}",
+                'employee_code': row.get('Employee Code'),
+                'manager_name': row.get('Manager Name') if pd.notna(row.get('Manager Name')) else None,
+                'manager_email': row.get('Manager Email') if pd.notna(row.get('Manager Email')) else None,
                 'employee_dept': row.get('EmployeeLevel'),
                 'employee_phone': row.get('Phone Number with country code'),
                 'whatsapp_phone_number': row.get('Whatsapp Phone number'),
@@ -545,9 +559,11 @@ class S3ImageView(APIView):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TemplateImageView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        all_template_image = TemplateImage.objects.all()
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        all_template_image = TemplateImage.objects.filter(company_id=payload['company_id'])
         serializer = TemplateImageSerializer(all_template_image, many=True)
         return Response(return_response(2, 'Template image found', serializer.data), status=status.HTTP_200_OK)
 
@@ -851,7 +867,260 @@ class get_company_details(APIView):
             return Response(return_response(1, 'id is required'), status=status.HTTP_400_BAD_REQUEST)
         try:
             all_company = Company.objects.get(company_id=id)
+            get_employee = Employees.objects.filter(company_id=id)
+            all_employee = EmployeeSerializer(get_employee, many=True)
             serializer = CompanySerializer(all_company)
-            return Response(return_response(2, 'Company found', serializer.data), status=status.HTTP_200_OK)
+            
+            responce  ={
+                "company": serializer.data,
+                "employee": all_employee.data
+            }
+            return Response(return_response(2, 'Company found', responce), status=status.HTTP_200_OK)
         except Company.DoesNotExist:
             return Response(return_response(1, 'Company not found'), status=status.HTTP_404_NOT_FOUND)
+
+class RewardsMailAction(APIView):
+    def post(self, request):
+        get_key = request.data.get('key')
+        reward_status = 'Submitted'  # Renamed to avoid conflict
+        appored_key = '4a5c6e7d8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7y8z9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9'
+        cancel_key = '9f8e7d6c5b4a3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3a2b1c0d9e8f7g6h5i4j3k2l1m0n9o8p7q6r5s4t3u2v1w0x9y8z7a6b5c4d'
+
+        if get_key == appored_key:
+            reward_status = 'Approved'
+        elif get_key == cancel_key:
+            reward_status = 'Cancelled'
+
+        if Reward.objects.filter(reward_id=request.data.get('id')).exists():
+            get_reward = Reward.objects.get(reward_id=request.data.get('id'))
+            get_reward.status = reward_status
+            serializer = RewardSerializer(get_reward, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(return_response(2, 'Successfully updated'), status=status.HTTP_201_CREATED)
+        else:
+            return Response(return_response(1, 'Reward not found'), status=status.HTTP_404_NOT_FOUND)
+def send_mail_action(mail_id,reward_id):
+    subject = "Action Required"
+    from_email = 'karthikfoul66@gmail.com'
+    recipient_list = [mail_id]  # Use the passed mail_id as the recipient
+    appored_key = '4a5c6e7d8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7y8z9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9'
+    cancel_key = '9f8e7d6c5b4a3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3a2b1c0d9e8f7g6h5i4j3k2l1m0n9o8p7q6r5s4t3u2v1w0x9y8z7a6b5c4d'
+
+    # HTML email template
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            color: #333;
+        }
+        p {
+            color: #555;
+        }
+        .button-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .button {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .button-approve {
+            background-color: #28a745;
+        }
+        .button-approve:hover {
+            background-color: #218838;
+        }
+        .button-cancel {
+            background-color: #dc3545;
+        }
+        .button-cancel:hover {
+            background-color: #c82333;
+        }
+    </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <h2>Action Required</h2>
+            <p>
+                Hello, <br>
+                Please review the details and select an action below.
+            </p>
+            <div class="button-container">
+                <!-- Approve Button -->
+                <a href="https://srv688176.hstgr.cloud/mail-action/{reward_id}/{appored_key}" class="button button-approve">Approve</a>
+                <!-- Cancel Button -->
+                <a href="https://srv688176.hstgr.cloud/mail-action/{reward_id}/{cancel_key}" class="button button-cancel">Cancel</a>
+            </div>
+            <p>
+                If you have any questions, feel free to reply to this email.<br>
+                Thank you!
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
+    # Generate plain text version
+    plain_text_message = strip_tags(html_content)
+
+    try:
+        # Send email
+        email_message = EmailMultiAlternatives(subject, plain_text_message, from_email, recipient_list)
+        email_message.attach_alternative(html_content, "text/html")
+        email_message.send()
+        return Response({"message": "Email sent successfully"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        # Handle errors
+        return Response(
+            {"message": f"Error sending email: {str(e)}"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+class RewardsView(APIView):  
+    def post(self, request):
+        try:
+            serializer = RewardSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                get_reward_id = serializer.data.get('reward_id')
+                if serializer.data.get('recipient_manager_email') is not None:
+                    # send mail action
+                    get_mail_id = serializer.data.get('recipient_manager_email')
+                    send_mail_action(get_mail_id,get_reward_id)
+                return Response(return_response(2, 'Successfully created', serializer.data), status=status.HTTP_201_CREATED)
+            else:
+                return Response(return_response(1, 'Rewards not created', serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+        except Reward.DoesNotExist:
+            return Response(return_response(1, 'Rewards not found'), status=status.HTTP_404_NOT_FOUND)
+class RewardslistView(APIView):
+    def get(self, request):
+        permission_classes = [IsAuthenticated]
+        payload = Decode_JWt(request.headers.get('Authorization'))
+        try:
+            all_reward = Reward.objects.filter(company_id=payload['company_id'])
+            serializer = RewardSerializer(all_reward, many=True)
+            return Response(return_response(2, 'Rewards found', serializer.data), status=status.HTTP_200_OK)
+        except Reward.DoesNotExist:
+            return Response(return_response(1, 'Rewards not found'), status=status.HTTP_404_NOT_FOUND)
+
+class generate_image(APIView):
+    def post(self, request):
+        try:
+            data = request.data
+            image_url = data.get('image')
+            text = data.get('text', '')
+            text2 = data.get('text2', '')
+            logo_url = data.get('logo')
+            text_position = data.get('textPosition', {})
+            text2_position = data.get('text2Position', {})
+            logo_position = data.get('logoPosition', {})
+            font_family = data.get('fontFamily', 'arial.ttf')  # Default font
+            font_size = data.get('fontSize', 20)
+            font_size2 = data.get('fontSize2', 20)
+            font_color = data.get('fontColor', '#000000')
+
+            # Define a cross-platform font path
+            def get_font_path(font_name):
+                if os.name == 'nt':  # Windows
+                    # Try a few common fonts
+                    possible_font_paths = [
+                        os.path.join('C:', 'Windows', 'Fonts', 'arial.ttf'),
+                        os.path.join('C:', 'Windows', 'Fonts', 'verdana.ttf')
+                    ]
+                    for font_path in possible_font_paths:
+                        if os.path.isfile(font_path):
+                            return font_path
+                else:  # Linux
+                    # On Linux, DejaVuSans is common and might be preinstalled
+                    return '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+
+                return None
+
+            # Check if the specified font exists
+            font_path = get_font_path(font_family)
+            if not font_path:
+                return Response({'error': f'Font file not found for {font_family}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Download the base image
+            response = requests.get(image_url)
+            if response.status_code != 200:
+                return Response({'error': 'Failed to fetch image from URL'}, status=status.HTTP_400_BAD_REQUEST)
+            image_bytes = BytesIO(response.content)
+            base_image = Image.open(image_bytes).convert('RGBA')  # Convert to RGBA
+
+            # Create a drawing context
+            draw = ImageDraw.Draw(base_image)
+
+            # Load fonts with fallback logic for both systems
+            try:
+                font = ImageFont.truetype(font_path, font_size)
+            except IOError:
+                return Response({'error': f'Failed to load font from {font_path}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            try:
+                font2 = ImageFont.truetype(font_path, font_size2)
+            except IOError:
+                return Response({'error': f'Failed to load second font from {font_path}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Draw the first text
+            text_x = int((text_position.get('x', 0) / 100) * base_image.width)
+            text_y = int((text_position.get('y', 0) / 100) * base_image.height)
+            draw.multiline_text((text_x, text_y), text, font=font, fill=font_color, align='center')
+
+            # Draw the second text
+            text2_x = int((text2_position.get('x', 0) / 100) * base_image.width)
+            text2_y = int((text2_position.get('y', 0) / 100) * base_image.height)
+            draw.multiline_text((text2_x, text2_y), text2, font=font2, fill=font_color, align='center')
+
+            # Draw the logo (same as before)
+            if logo_url:
+                logo_response = requests.get(logo_url)
+                if logo_response.status_code != 200:
+                    return Response({'error': 'Failed to fetch logo from URL'}, status=status.HTTP_400_BAD_REQUEST)
+                logo_bytes = BytesIO(logo_response.content)
+                logo_image = Image.open(logo_bytes).convert('RGBA')
+
+                logo_width = int((logo_position.get('width', 10) / 100) * base_image.width)
+                logo_height = int((logo_position.get('height', 10) / 100) * base_image.height)
+                logo_x = int((logo_position.get('x', 0) / 100) * base_image.width)
+                logo_y = int((logo_position.get('y', 0) / 100) * base_image.height)
+
+                # Use LANCZOS instead of ANTIALIAS for better quality resampling
+                logo_image = logo_image.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+                base_image.paste(logo_image, (logo_x, logo_y), logo_image)
+
+            # Convert RGBA to RGB before saving as JPEG (JPEG doesn't support transparency)
+            base_image = base_image.convert('RGB')
+
+            # Convert the final image to base64
+            output_buffer = BytesIO()
+            base_image.save(output_buffer, format='JPEG')
+            output_buffer.seek(0)
+            final_base64_image = base64.b64encode(output_buffer.read()).decode('utf-8')
+
+            return Response({'base64Image': f'data:image/jpeg;base64,{final_base64_image}'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
