@@ -34,4 +34,5 @@ urlpatterns = [
     path('reward-mail-action/', RewardsMailAction.as_view(), name='reward-mail-action'),
     path('rewardlist/', RewardslistView.as_view(), name='rewardlist'),
     path('genrate-image/', generate_image.as_view(), name='genrate-image'),
+    path('generate-ops-excel/', generate_ops_excel.as_view(), name='generate-ops-excel'),
 ]

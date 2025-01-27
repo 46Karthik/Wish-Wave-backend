@@ -708,6 +708,172 @@ class OpsTableView(APIView):
         serializer = OpsViewSerializer(filter_ops_table, many=True)
         return Response(return_response(2, 'Ops Table found', serializer.data), status=status.HTTP_200_OK)
 
+class generate_ops_excel(APIView):
+    def post(self, request):
+        # Extract filter values from the request
+        company_name = request.data.get('company_name')
+        occasion = request.data.get('occasion')
+        relation = request.data.get('relation')
+        event_date = request.data.get('event_date')
+        filter_date_from_to = request.data.get('filter_date_from_To')
+
+        # Build filter criteria dynamically
+        filter_criteria = self.build_filter_criteria(
+            company_name=company_name,
+            occasion=occasion,
+            relation=relation,
+            event_date=event_date,
+            filter_date_from_to=filter_date_from_to
+        )
+
+        # Filter OpsView data
+        filter_ops_table = OpsView.objects.filter(**filter_criteria)
+
+        # Serialize OpsView data
+        serializer = OpsViewSerializer(filter_ops_table, many=True)
+        ops_data = serializer.data
+
+        if not ops_data:
+            return Response({'status': 1, 'message': 'No data found', 'data': []}, status=status.HTTP_200_OK)
+
+        # Fetch related CakeAndGift and Product data
+        ops_with_cake_gift = []
+        for ops_item in ops_data:
+            # Fetch CakeAndGift data for each Ops entry
+            food_and_gift = CakeAndGift.objects.filter(
+                employee_id=ops_item['employee_id'], occasion=ops_item['occasion']
+            )
+            gift_serializer = CakeAndGiftSerializer(food_and_gift, many=True)
+            cake_and_gift_data = gift_serializer.data
+
+            # Initialize lists to store product names
+            food_names = []
+            gift_names = []
+
+            for gift in cake_and_gift_data:
+                # Fetch and append food product names
+                food_ids = gift.get('food_id', '')
+                if food_ids:
+                    print (food_ids.split(','),'------------')
+                    food_products = Product.objects.filter(product_id__in=food_ids.split(','))
+                    food_names.extend([product.label for product in food_products])
+
+                # Fetch and append gift product names
+                gift_ids = gift.get('gift_id', '')
+                if gift_ids:
+                    gift_products = Product.objects.filter(product_id__in=gift_ids.split(','))
+                    gift_names.extend([product.label for product in gift_products])
+
+            # Add food and gift names to the Ops data
+            ops_item['food_product_name1'] = food_names[0] if len(food_names) > 0 else None
+            ops_item['food_product_name2'] = food_names[1] if len(food_names) > 1 else None
+            ops_item['gift_product_name1'] = gift_names[0] if len(gift_names) > 0 else None
+            ops_item['gift_product_name2'] = gift_names[1] if len(gift_names) > 1 else None
+            ops_item['cake_and_gift_data'] = cake_and_gift_data
+            ops_with_cake_gift.append(ops_item)
+
+        # Create Excel file and convert it to Base64
+        excel_base64 = self.create_excel_base64(ops_with_cake_gift)
+
+        # Return the Excel file as a Base64 string in the response
+        return Response(
+            {'status': 2, 'message': 'Ops Table Excel generated', 'data': {'excel_base64': excel_base64}},
+            status=status.HTTP_200_OK
+        )
+
+    def build_filter_criteria(self, company_name=None, occasion=None, relation=None, event_date=None, filter_date_from_to=None):
+        filter_criteria = {}
+
+        if company_name:
+            filter_criteria['company_name'] = company_name
+        if occasion:
+            filter_criteria['occasion'] = occasion
+        if relation:
+            filter_criteria['relation'] = relation
+        if event_date:
+            filter_criteria['event_date'] = event_date
+
+        if filter_date_from_to:
+            today = datetime.now().date()
+            if filter_date_from_to == 'today':
+                filter_criteria['event_date'] = today
+            elif filter_date_from_to == 'tomorrow':
+                filter_criteria['event_date'] = today + timedelta(days=1)
+            elif filter_date_from_to == '3days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=3))
+            elif filter_date_from_to == '5days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=5))
+            elif filter_date_from_to == '7days':
+                filter_criteria['event_date__range'] = (today, today + timedelta(days=7))
+
+        return filter_criteria
+
+    def create_excel_base64(self, data):
+        # Flatten the data: Merge CakeAndGift data into the main OpsView data
+        merged_data = []
+        for item in data:
+            # Flatten the Ops data and CakeAndGift data into a single record
+            ops_item = {key: item[key] for key in item if key != 'cake_and_gift_data'}
+            cake_and_gift_info = item.get('cake_and_gift_data', [])
+            for gift in cake_and_gift_info:
+                # For each gift, create a new record with both Ops and CakeAndGift details
+                new_item = ops_item.copy()
+                new_item.update(gift)  # Merge the CakeAndGift details into the Ops item
+                merged_data.append(new_item)
+
+        # Convert to a DataFrame
+        df = pd.DataFrame(merged_data)
+
+        # Specify required columns
+        columns_to_keep = [
+            'company_name', 'name_of_person', 'event_date', 'occasion', 'relation', 
+            'address1', 'address2', 'city', 'zipcode', 'email_id', 'phone_number', 
+            'subscription', 'email_status', 'image_status', 'whatsapp_status', 
+            'cake_status', 'gift_status', 'cake_order_date', 'cake_delivery_date', 
+            'cake_otp', 'gift_order_date', 'gift_delivery_date', 'gift_otp',
+            'cake_shop_name', 'cake_from_address', 'cake_from_city', 'cake_from_state', 
+            'cake_from_pincode', 'cake_wish_message', 'gift_shop_name', 'gift_from_address',
+            'gift_from_city', 'gift_from_state', 'gift_from_pincode', 'gift_delivery_person_name', 
+            'gift_delivery_person_number', 'gift_delivery_verification_link', 
+            'gift_scheduled_delivery_date', 'gift_scheduled_order_date', 
+            'food_product_name1', 'food_product_name2', 'gift_product_name1', 'gift_product_name2'
+        ]
+
+        # Ensure the columns exist in the DataFrame
+        columns_to_keep = [col for col in columns_to_keep if col in df.columns]
+        df = df[columns_to_keep]
+
+        # Rename columns to user-friendly names
+        custom_column_names = {
+            'company_name': 'Company Name', 'name_of_person': 'Name of Person', 
+            'event_date': 'Event Date', 'occasion': 'Occasion', 'relation': 'Relation', 
+            'address1': 'Address 1', 'address2': 'Address 2', 'city': 'City', 
+            'zipcode': 'Zip Code', 'email_id': 'Email ID', 'phone_number': 'Phone Number', 
+            'subscription': 'Subscription', 'email_status': 'Email Status', 
+            'image_status': 'Image Status', 'whatsapp_status': 'WhatsApp Status', 
+            'cake_status': 'Cake Status', 'gift_status': 'Gift Status', 
+            'cake_order_date': 'Cake Order Date', 'cake_delivery_date': 'Cake Delivery Date', 
+            'cake_otp': 'Cake OTP', 'gift_order_date': 'Gift Order Date', 
+            'gift_delivery_date': 'Gift Delivery Date', 'gift_otp': 'Gift OTP',
+            'food_product_name1': 'Food Product Name 1', 'food_product_name2': 'Food Product Name 2',
+            'gift_product_name1': 'Gift Product Name 1', 'gift_product_name2': 'Gift Product Name 2'
+        }
+
+        df.rename(columns=custom_column_names, inplace=True)
+
+        # Convert the DataFrame to an Excel file in memory
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Ops Table')
+
+        # Encode the Excel file as Base64
+        buffer.seek(0)
+        excel_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        buffer.close()
+
+        return excel_base64
+
+
 
 class SubscriptionTableView(APIView):
     permission_classes = [IsAuthenticated]
