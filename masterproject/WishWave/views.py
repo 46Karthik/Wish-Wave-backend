@@ -1066,88 +1066,244 @@ class RewardsMailAction(APIView):
                 return Response(return_response(2, 'Successfully updated'), status=status.HTTP_201_CREATED)
         else:
             return Response(return_response(1, 'Reward not found'), status=status.HTTP_404_NOT_FOUND)
-def send_mail_action(mail_id,reward_id):
+ # # HTML email template
+    # html_content = """
+    # <!DOCTYPE html>
+    # <html>
+    # <head>
+    # <style>
+    #     body {
+    #         font-family: Arial, sans-serif;
+    #         line-height: 1.6;
+    #         margin: 0;
+    #         padding: 0;
+    #     }
+    #     .email-container {
+    #         max-width: 600px;
+    #         margin: 20px auto;
+    #         padding: 20px;
+    #         border: 1px solid #ddd;
+    #         border-radius: 8px;
+    #         background-color: #f9f9f9;
+    #     }
+    #     h2 {
+    #         color: #333;
+    #     }
+    #     p {
+    #         color: #555;
+    #     }
+    #     .button-container {
+    #         margin-top: 20px;
+    #         text-align: center;
+    #     }
+    #     .button {
+    #         display: inline-block;
+    #         margin: 5px;
+    #         padding: 10px 20px;
+    #         font-size: 16px;
+    #         color: white;
+    #         text-decoration: none;
+    #         border-radius: 4px;
+    #         transition: background-color 0.3s ease;
+    #     }
+    #     .button-approve {
+    #         background-color: #28a745;
+    #     }
+    #     .button-approve:hover {
+    #         background-color: #218838;
+    #     }
+    #     .button-cancel {
+    #         background-color: #dc3545;
+    #     }
+    #     .button-cancel:hover {
+    #         background-color: #c82333;
+    #     }
+    # </style>
+    # </head>
+    # <body>
+    #     <div class="email-container">
+    #         <h2>Action Required</h2>
+    #         <p>
+    #             Hello, <br>
+    #             Please review the details and select an action below.
+    #         </p>
+    #         <div class="button-container">
+    #             <!-- Approve Button -->
+    #             <a href="https://srv688176.hstgr.cloud/mail-action/{reward_id}/{appored_key}" class="button button-approve">Approve</a>
+    #             <!-- Cancel Button -->
+    #             <a href="https://srv688176.hstgr.cloud/mail-action/{reward_id}/{cancel_key}" class="button button-cancel">Cancel</a>
+    #         </div>
+    #         <p>
+    #             If you have any questions, feel free to reply to this email.<br>
+    #             Thank you!
+    #         </p>
+    #     </div>
+    # </body>
+    # </html>
+    # """
+
+
+def send_mail_action(mail_id, reward_id, data):
     subject = "Action Required"
     from_email = 'karthikfoul66@gmail.com'
     recipient_list = [mail_id]  # Use the passed mail_id as the recipient
     appored_key = '4a5c6e7d8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7y8z9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9'
     cancel_key = '9f8e7d6c5b4a3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3a2b1c0d9e8f7g6h5i4j3k2l1m0n9o8p7q6r5s4t3u2v1w0x9y8z7a6b5c4d'
 
-    # HTML email template
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-        }
-        .email-container {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-        }
-        h2 {
-            color: #333;
-        }
-        p {
-            color: #555;
-        }
-        .button-container {
-            margin-top: 20px;
-            text-align: center;
-        }
-        .button {
-            display: inline-block;
-            margin: 5px;
-            padding: 10px 20px;
-            font-size: 16px;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            transition: background-color 0.3s ease;
-        }
-        .button-approve {
-            background-color: #28a745;
-        }
-        .button-approve:hover {
-            background-color: #218838;
-        }
-        .button-cancel {
-            background-color: #dc3545;
-        }
-        .button-cancel:hover {
-            background-color: #c82333;
-        }
-    </style>
-    </head>
-    <body>
-        <div class="email-container">
-            <h2>Action Required</h2>
-            <p>
-                Hello, <br>
-                Please review the details and select an action below.
-            </p>
+    # Fetch company data from the database
+    company_data = Company.objects.get(company_id=data['company_id'])
+    company_name = company_data.company_name
+
+    # Extracting values from the data dictionary
+    submitter_emp_code = data.get('submitter_emp_code')
+    submitter_emp_name = data.get('submitter_emp_name')
+    submitter_dept = data.get('submitter_dept')
+
+    recipient_emp_code = data.get('recipient_emp_code')
+    recipient_emp_name = data.get('recipient_emp_name')
+    justification = data.get('justification')
+
+    core_value = data.get('core_value')
+    delivery = data.get('delivery')
+    impact = data.get('impact')
+    points = data.get('points')
+
+    # HTML content for the email
+    html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Recognition Mail Template</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #dcdcdc;
+                }}
+                .mail-container {{
+                    background: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                    padding: 20px 30px;
+                    max-width: 600px;
+                    margin: 50px auto;
+                    line-height: 1.6;
+                    color: #333;
+                }}
+                .mail-container h2 {{
+                    text-align: center;
+                    color: #007bff;
+                    margin-bottom: 10px;
+                }}
+                .mail-container p {{
+                    margin-bottom: 20px;
+                    font-size: 14px;
+                    color: #555;
+                }}
+                .mail-container .highlight {{
+                    font-weight: bold;
+                    color: #000;
+                }}
+                .mail-container .section {{
+                    margin-bottom: 15px;
+                }}
+                .mail-container .section label {{
+                    display: block;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                    font-size: 14px;
+                }}
+                .mail-container .section span {{
+                    display: block;
+                    font-size: 14px;
+                    color: #555;
+                }}
+                .footer {{
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 12px;
+                    color: #888;
+                }}
+                .button-container {{
+                    margin-top: 20px;
+                    text-align: center;
+                }}
+                .button {{
+                    display: inline-block;
+                    margin: 5px;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 4px;
+                    transition: background-color 0.3s ease;
+                }}
+                .button-approve {{
+                    background-color: #28a745;
+                }}
+                .button-approve:hover {{
+                    background-color: #218838;
+                }}
+                .button-cancel {{
+                    background-color: #dc3545;
+                }}
+                .button-cancel:hover {{
+                    background-color: #c82333;
+                }}
+            </style>
+        </head>
+        <body>
+        <div class="mail-container">
+            <h2>Welcome {company_name}!!!</h2>
+            <p>Good job in your efforts to appreciate!</p>
+            <div class="section">
+                <label>Your Employee ID:</label>
+                <span class="highlight">{submitter_emp_code} - {submitter_emp_name}</span>
+            </div>
+            <div class="section">
+                <label>Like to Recognise:</label>
+                <span class="highlight">{recipient_emp_code} - {recipient_emp_name}</span>
+            </div>
+            <div class="section">
+                <label>Department:</label>
+                <span>{submitter_dept}</span>
+            </div>
+            <div class="section">
+                <label>For:</label>
+                <span>{justification}</span>
+            </div>
+            <div class="section">
+                <label>Award Category (Core Values):</label>
+                <span>{core_value}</span>
+            </div>
+            <div class="section">
+                <label>Delivering:</label>
+                <span>{delivery}</span>
+            </div>
+            <div class="section">
+                <label>Business Impact:</label>
+                <span>{impact}</span>
+            </div>
+            <div class="section">
+                <label>Points Rewarded:</label>
+                <span class="highlight">{points} Points</span>
+            </div>
             <div class="button-container">
                 <!-- Approve Button -->
                 <a href="https://srv688176.hstgr.cloud/mail-action/{reward_id}/{appored_key}" class="button button-approve">Approve</a>
                 <!-- Cancel Button -->
                 <a href="https://srv688176.hstgr.cloud/mail-action/{reward_id}/{cancel_key}" class="button button-cancel">Cancel</a>
             </div>
-            <p>
-                If you have any questions, feel free to reply to this email.<br>
-                Thank you!
-            </p>
+            <div class="footer">
+                <p>Thank you for being an integral part of our success!</p>
+            </div>
         </div>
-    </body>
-    </html>
-    """
+        </body>
+        </html>
+        """
 
     # Generate plain text version
     plain_text_message = strip_tags(html_content)
@@ -1164,6 +1320,7 @@ def send_mail_action(mail_id,reward_id):
             {"message": f"Error sending email: {str(e)}"}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 class RewardsView(APIView):  
     def post(self, request):
         try:
@@ -1174,7 +1331,8 @@ class RewardsView(APIView):
                 if serializer.data.get('recipient_manager_email') is not None:
                     # send mail action
                     get_mail_id = serializer.data.get('recipient_manager_email')
-                    send_mail_action(get_mail_id,get_reward_id)
+                    print ('-----------serializer.data',serializer.data)
+                    send_mail_action(get_mail_id,get_reward_id,serializer.data)
                 return Response(return_response(2, 'Successfully created', serializer.data), status=status.HTTP_201_CREATED)
             else:
                 return Response(return_response(1, 'Rewards not created', serializer.errors), status=status.HTTP_400_BAD_REQUEST)

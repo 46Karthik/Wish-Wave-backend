@@ -404,6 +404,7 @@ class Reward(models.Model):
     submitter_emp_name = models.CharField(max_length=255, null=True, blank=True)
     submitter_emp_phone = models.CharField(max_length=20, null=True, blank=True)
     submitter_emp_email = models.EmailField(null=True, blank=True)
+    submitter_dept = models.CharField(max_length=255, null=True, blank=True)
     submitter_manager_name = models.CharField(max_length=255, null=True, blank=True)
     submitter_manager_email = models.EmailField(null=True, blank=True)
 
